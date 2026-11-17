@@ -536,7 +536,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 /* Logo, league name and social buttons form one block, each centred on the name. */
 .hero-copy { display: grid; justify-items: center; width: fit-content; max-width: 100%; }
 .hero h1 { width: fit-content; max-width: 100%; justify-items: center; }
-.hero-logo { width: min(340px, 75%); height: auto; mix-blend-mode: screen; }
+.hero-logo { width: min(340px, 75%); height: auto; }
 .hero h1 + .hero-cta { margin-top: 1.5rem; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .hero-track { max-width: 460px; justify-self: center; width: 100%; }
@@ -903,7 +903,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 
 /* ---------- States & footer ---------- */
 .state { display: grid; place-items: center; gap: 1rem; padding: 5rem 1rem; color: var(--text-2); text-align: center; }
-.loader { width: 64px; height: 64px; background: url('../assets/logo.png') center / contain no-repeat; mix-blend-mode: screen; }
+.loader { width: 64px; height: 64px; background: url('../assets/logo-transparent.png') center / contain no-repeat; }
 @media (prefers-reduced-motion: no-preference) { .loader { animation: pulse 1.2s ease-in-out infinite; } }
 
 .site-footer { position: relative; margin-top: 3rem; border-top: 1px solid var(--line); background: var(--bg-2); }

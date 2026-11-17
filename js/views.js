@@ -314,7 +314,7 @@ export function home(model, cfg) {
   const html = `
   <section class="hero" aria-labelledby="hero-h">
     <div class="hero-copy">
-      <h1 id="hero-h" tabindex="-1"><img src="assets/logo.png" alt="" class="hero-logo" width="900" height="450"><span>Pole Position Racing</span></h1>
+      <h1 id="hero-h" tabindex="-1"><img src="assets/logo-transparent.png" alt="" class="hero-logo" width="900" height="450"><span>Pole Position Racing</span></h1>
       ${socialLinks(cfg)}
     </div>
     <div class="hero-track">${trackMap(last.track, { draw: true, label: model.trackName[last.track] })}</div>
