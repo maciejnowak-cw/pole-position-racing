@@ -35,7 +35,7 @@ const numCol = (label, get, opts = {}) => ({ label, type: 'num', desc: true, val
 
 /** Pole position / fastest lap badges for one result, with full names on hover. */
 function ppFl(e) {
-  return `${e.pp ? ` <span class="badge badge-pp" data-tip="${esc(t('common.pole'))}" aria-label="${esc(t('common.pole'))}" role="img">PP</span>` : ''}${e.fl ? ` <span class="badge badge-fl" data-tip="${esc(t('common.fastestLap'))}" aria-label="${esc(t('common.fastestLap'))}" role="img">${t('common.flShort')}</span>` : ''}`;
+  return `${e.pp ? ` <span class="badge badge-pp" data-tip="${esc(t('common.pole'))}" aria-label="${esc(t('common.pole'))}" role="img">PP</span>` : ''}${e.fl ? ` <span class="badge badge-fl" data-tip="${esc(t('common.fastestLap'))}" data-tip-tone="fl" aria-label="${esc(t('common.fastestLap'))}" role="img">${t('common.flShort')}</span>` : ''}`;
 }
 
 /** Driver with the team they drove for in that race (winner / pole / fastest lap rows). */
@@ -384,7 +384,7 @@ function resultsMatrix(model, s) {
       const e = r.results.get(race.id);
       if (!e) return '<span class="cell-none">·</span>';
       const c = e.dnf ? 'm-dnf' : e.pos <= 3 ? `m-${e.pos}` : e.pts > 0 ? 'm-pts' : 'm-out';
-      const marks = `${e.pp ? `<sup class="m-pp" data-tip="${esc(t('common.pole'))}">P</sup>` : ''}${e.fl ? `<sup class="m-fl" data-tip="${esc(t('common.fastestLap'))}">F</sup>` : ''}`;
+      const marks = `${e.pp ? `<sup class="m-pp" data-tip="${esc(t('common.pole'))}">P</sup>` : ''}${e.fl ? `<sup class="m-fl" data-tip="${esc(t('common.fastestLap'))}" data-tip-tone="fl">F</sup>` : ''}`;
       return `<a class="m ${c}" href="${href.race(race.id)}">${e.dnf ? 'DNF' : e.pos}${marks}</a>`;
     },
   }));

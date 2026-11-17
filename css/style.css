@@ -793,6 +793,8 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   font-size: 0.85rem; color: var(--text); white-space: nowrap; box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
 }
 .tooltip.on { opacity: 1; }
+/* Fastest lap hint takes the purple edge of the F / FL badge. */
+.tooltip[data-tone='fl'] { border-color: rgb(186 120 255 / 0.6); }
 
 /* ---------- Boards (stats) ---------- */
 .boards { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }

@@ -307,6 +307,7 @@ export function initTooltip() {
   document.body.append(tip);
   const show = (el, x, y) => {
     tip.textContent = el.dataset.tip;
+    tip.dataset.tone = el.dataset.tipTone || ''; // e.g. purple edge for fastest lap
     tip.classList.add('on');
     const r = tip.getBoundingClientRect();
     const left = Math.min(Math.max(8, x - r.width / 2), innerWidth - r.width - 8);
