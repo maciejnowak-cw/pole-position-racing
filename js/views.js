@@ -291,6 +291,15 @@ function animateCounters(root) {
   requestAnimationFrame(tick);
 }
 
+/* Once the opening draw of the hero track has finished, hovering the track re-draws it like the race cards do. */
+function heroTrackHover(root) {
+  const svg = root.querySelector('.hero-track .trackmap');
+  if (!svg) return;
+  const ready = () => svg.classList.replace('trackmap-draw', 'trackmap-hover');
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return ready();
+  svg.querySelector('.trk-line')?.addEventListener('animationend', ready, { once: true });
+}
+
 /* League social media buttons in the home hero; links come from config.json ("social"), empty ones are hidden. */
 function socialLinks(cfg) {
   const links = SOCIAL.filter(([key]) => cfg?.social?.[key]).map(([key, name]) => `<a class="btn btn-social btn-${key}" href="${esc(cfg.social[key])}" target="_blank" rel="noopener">${socialIcon(key)}<span>${name}</span></a>`);
@@ -337,7 +346,7 @@ export function home(model, cfg) {
         </div>`, { id: 'h-champ', action: moreLink('#/hall-of-fame', t('nav.hof')), cls: 'o-5' }) : ''}
     </div>
   </div>`;
-  return { title: '', html, init: (root) => { animateCounters(root); } };
+  return { title: '', html, init: (root) => { animateCounters(root); heroTrackHover(root); } };
 }
 
 /* ---------- Season / standings ---------- */
@@ -749,6 +758,7 @@ export function team(model, key) {
     const c = s.constructors.find((x) => x.key === key);
     if (c) seasonRows.push({ season: s.n, ...c, finished: s.finished });
   }
+  // Names the team raced under, oldest first (the last is today's name); the header lists them all with each era's logo.
   const names = [...tm.names.entries()].sort((a, b) => a[1] - b[1]).map(([n]) => n);
   const finishedPos = seasonRows.filter((r) => r.finished).map((r) => r.pos);
   const best = finishedPos.length ? Math.min(...finishedPos) : null;
@@ -772,7 +782,7 @@ export function team(model, key) {
   </dl>`;
   const html = `${backLink('#/teams')}<header class="page-head team-head" style="--team:${tm.info.color}">
     <div class="team-id">${teamLogo(key, 'tlogo-xl')}<div><p class="kicker">${esc(tm.info.full)}</p><h1 tabindex="-1">${esc(tm.info.name)}</h1>
-    ${names.length > 1 ? `<p class="lead">${t('common.historicNames')}: ${names.map(esc).join(' → ')}</p>` : ''}
+    ${names.length > 1 ? `<p class="lead old-names">${names.map((n) => `<span class="old-name">${teamLogo(key, '', n)}${esc(n)}</span>`).join('<span aria-hidden="true">→</span>')}</p>` : ''}
     <p class="badges">${badges}</p></div></div>
   </header>
   ${tiles}

@@ -509,11 +509,13 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   }
 }
 @keyframes draw { to { stroke-dashoffset: 0; } }
-/* Hovering a track in a race card or track card re-draws its line (restarts on every hover). */
+/* Hovering a track in a race card, track card or the home hero re-draws its line (restarts on every hover). */
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .race-card-map:hover .trk-line, .race-card-click:hover .trk-line, .track-card:hover .trk-line {
+  .race-card-map:hover .trk-line, .race-card-click:hover .trk-line, .track-card:hover .trk-line, .hero-track:hover .trackmap-hover .trk-line {
     stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.4s cubic-bezier(.6, .1, .2, 1) forwards;
   }
+  /* The home hero track re-draws at the same pace as when the page opens. */
+  .hero-track:hover .trackmap-hover .trk-line { animation-duration: 2.4s; }
 }
 
 /* ---------- Hero ---------- */
@@ -715,7 +717,13 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
 .team-card { position: relative; overflow: hidden; padding-block-start: 1.3rem; text-align: center; justify-items: center; }
+/* Team page: earlier names with the logo of that era. */
+.old-names { flex-wrap: wrap; gap: 0.35rem 0.6rem; }
+.old-name { display: inline-flex; align-items: center; gap: 0.4rem; }
+.old-names .old-name .tlogo { width: 24px; height: 24px; }
 .team-card::before { content: ''; position: absolute; inset: 0 0 auto; height: 4px; background: var(--team); }
+/* Hover edge in the team colour, matching the strip on top. */
+.team-card:hover { border-color: var(--team); }
 .team-card-logo { display: flex; height: 52px; align-items: center; justify-content: center; }
 .team-card-pos { position: absolute; top: 0.9rem; right: 1rem; font: italic 800 2.2rem var(--font-display); color: var(--line-2); }
 .team-card-name { font: italic 800 1.6rem var(--font-display); text-transform: uppercase; margin-top: 0.4rem; }
@@ -849,6 +857,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .legend-logo .tlogo { width: 2.6rem; height: 2.6rem; }
 .legend-1 .legend-logo { height: 3.2rem; }
 .legend-1 .legend-logo .tlogo { width: 3.2rem; height: 3.2rem; }
+.legend-name, .legend-name a { color: var(--text); }
 .legend-name a { text-decoration: none; }
 .legend-name a:hover { text-decoration: underline; }
 .legend-seasons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem; }
