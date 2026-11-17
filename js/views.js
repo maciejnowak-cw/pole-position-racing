@@ -152,15 +152,17 @@ let factSeed = Math.random();
 function leagueFacts(model) {
   const facts = [];
   const track = (code) => model.trackName[code] || code;
+  // Track in a fact's detail line: country flag + track name.
+  const place = (code) => `<span class="fact-place">${trackFlag(code)}${esc(track(code))}</span>`;
   const add = (title, who, detail, link) => facts.push({ title, who, detail, link });
 
   // Wins from far down the grid and big climbs (top 8 of each).
   model.raceList.filter((r) => r.winner?.win && r.winner.grid >= 6).sort((a, b) => b.winner.grid - a.winner.grid).slice(0, 8)
-    .forEach((r) => add(t('fact.gridWin', { grid: r.winner.grid }), driverLink(model, r.winner.driver), `${esc(track(r.track))} · S${r.season}`, href.race(r.id)));
+    .forEach((r) => add(t('fact.gridWin', { grid: r.winner.grid }), driverLink(model, r.winner.driver), `${place(r.track)} · S${r.season}`, href.race(r.id)));
   const climbs = [];
   for (const r of model.raceList) for (const e of r.entries) if (e.grid && e.pos && !e.dnf && e.grid - e.pos >= 10) climbs.push({ r, e });
   climbs.sort((a, b) => (b.e.grid - b.e.pos) - (a.e.grid - a.e.pos)).slice(0, 8)
-    .forEach(({ r, e }) => add(t('fact.climb', { grid: e.grid, pos: e.pos }), driverLink(model, e.driver), `${esc(track(r.track))} · S${r.season}`, href.race(r.id)));
+    .forEach(({ r, e }) => add(t('fact.climb', { grid: e.grid, pos: e.pos }), driverLink(model, e.driver), `${place(r.track)} · S${r.season}`, href.race(r.id)));
 
   // Tracks: dominant winner and variety of winners.
   for (const tr of model.tracks) {
@@ -195,7 +197,7 @@ function leagueFacts(model) {
     }
     return top;
   };
-  const at = (e) => { const r = model.races.get(e.race); return `${esc(track(r.track))} · S${r.season}`; };
+  const at = (e) => { const r = model.races.get(e.race); return `${place(r.track)} · S${r.season}`; };
   // Longest wait for a first win (counted in the driver's own starts).
   const wait = best((d) => { const i = d.entries.findIndex((e) => e.win); return i >= 0 ? { n: i + 1, e: d.entries[i] } : null; });
   if (wait?.n >= 10) add(t('fact.firstWinWait', { n: wait.n }), driverLink(model, wait.d.name), at(wait.e), href.race(wait.e.race));

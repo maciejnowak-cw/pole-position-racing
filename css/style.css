@@ -1042,6 +1042,10 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 /* "ahead of <driver>": the second driver looks exactly like the first; only the word between them is muted. */
 .fact-who > .sub:has(.who) { display: inline-flex; align-items: center; gap: 0.6rem; font-size: inherit; line-height: inherit; }
 .fact-who > .sub:has(.who) .who { color: var(--text); }
+.fact-place { display: inline-flex; align-items: center; gap: 0.35rem; }
+.fact-place .flag { width: 1.1em; height: 0.82em; }
+/* The whole detail line (flag, track, season) on one centred row so the track name sits level with the rest. */
+.fact-who > .sub:has(.fact-place) { display: inline-flex; align-items: center; gap: 0.3rem; position: relative; top: 1px; }
 
 /* Data could not be loaded / refreshed */
 .state-error .loader-still { animation: none; opacity: 0.5; filter: grayscale(1); }
