@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#070708">
+  <title>Pole Position Racing</title>
+  <meta name="description" content="Pole Position Racing: tabela mistrzostw, GOAT Ranking, statystyki kierowców, zespołów i torów.">
+  <meta property="og:title" content="Pole Position Racing">
+  <meta property="og:description" content="Tabele, rankingi i statystyki Pole Position Racing.">
+  <meta property="og:image" content="assets/og-image.png">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,600;1,700;1,800&family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css">
+  <link rel="preconnect" href="https://docs.google.com" crossorigin>
+  <link rel="modulepreload" href="js/data.js">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Przejdź do treści</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="site-logo" href="#/" aria-label="Pole Position Racing">
+        <img src="assets/logo-transparent.png" alt="" width="900" height="450">
+        <span class="site-name" aria-hidden="true">Pole Position <b>Racing</b></span>
+      </a>
+      <nav class="site-nav" aria-label="Główna nawigacja">
+        <button class="menu-button" type="button" popovertarget="site-menu" popovertargetaction="toggle" aria-controls="site-menu">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          <span>Menu</span>
+        </button>
+        <ul id="site-menu" class="site-menu" popover="auto"></ul>
+      </nav>
+      <div class="header-tools">
+        <button class="search-button" type="button" aria-label="Szukaj" aria-keyshortcuts="Control+K Meta+K /">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        </button>
+        <div class="lang" role="group" aria-label="Język">
+          <button type="button" data-lang="pl" lang="pl">PL</button>
+          <button type="button" data-lang="en" lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <noscript><p class="state">Ta strona wymaga włączonej obsługi JavaScript. / This site requires JavaScript.</p></noscript>
+  </main>
+  <button type="button" class="to-top" aria-hidden="true" tabindex="-1"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+
+  <footer class="site-footer">
+    <div class="footer-inner" id="footer"></div>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
