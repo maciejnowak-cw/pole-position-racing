@@ -105,6 +105,8 @@ abbr[title] { text-decoration: none; cursor: help; }
 .site-name { font-family: var(--font-display); font-style: italic; font-weight: 800; font-size: 1.15rem; letter-spacing: 0.03em; text-transform: uppercase; }
 .site-name b { color: var(--gold); font-weight: 800; }
 .is-wide .site-name { display: none; }
+/* Until the menu is built and measured (config still loading) the header shows only the logo. */
+.site-header:not(.nav-ready) .site-name { display: none; }
 /* Phones: logo mark only, so menu, search and language fit on one row. */
 @media (width < 560px) { .site-name { display: none; } }
 /* Phones: language switch right after the logo (instead of the site name), search and menu on the right,
@@ -205,12 +207,22 @@ abbr[title] { text-decoration: none; cursor: help; }
 .site-header.is-wide .site-menu a[aria-current='page']::before { inset: auto 0.6rem 0.25rem; width: auto; height: 3px; }
 .site-header.is-measuring * { transition: none !important; }
 
-.lang { display: inline-flex; border: 1px solid var(--line-2); border-radius: 999px; padding: 3px; gap: 2px; }
+.lang { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line-2); border-radius: 999px; padding: 3px; gap: 2px; }
+/* The gold pill is one shape that slides under the chosen language. */
+.lang::before {
+  content: ''; position: absolute; inset: 3px auto 3px 3px; width: calc(50% - 4px);
+  border-radius: 999px; background: var(--gold-grad);
+}
+.lang:has([data-lang='en'][aria-pressed='true'])::before { translate: calc(100% + 2px) 0; }
 .lang button {
-  min-width: 40px; min-height: 36px; border: 0; border-radius: 999px; background: transparent; color: var(--muted);
+  position: relative; min-width: 40px; min-height: 36px; border: 0; border-radius: 999px; background: transparent; color: var(--muted);
   font: 700 0.85rem var(--font-display); letter-spacing: 0.08em; cursor: pointer;
 }
-.lang button[aria-pressed='true'] { background: var(--gold-grad); color: #111; }
+.lang button[aria-pressed='true'] { color: #111; }
+@media (prefers-reduced-motion: no-preference) {
+  .lang::before { transition: translate 0.28s cubic-bezier(.6, .1, .2, 1); }
+  .lang button { transition: color 0.28s; }
+}
 .lang button:hover:not([aria-pressed='true']) { color: var(--text); }
 
 /* ---------- Layout ---------- */
@@ -1095,8 +1107,10 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 /* On the title row it may stick out above and below, so the row keeps the same height as titles without it
    and tables side by side stay level. */
 .block-head > .table-filter.is-compact { margin-block: -8px; }
-/* Without a title row (Drivers ranking) the magnifier gets its own row above the table. */
-.table-filter.is-compact:not(.block-head > *) { width: fit-content; margin: 0 0 0.6rem auto; }
+/* Without a title row (Drivers ranking) the magnifier gets its own row above the table, at the left edge;
+   the field opens to the right and the match count follows it. */
+.table-filter.is-compact:not(.block-head > *) { width: fit-content; margin: 0 auto 0.6rem 0; }
+.table-filter.is-compact:not(.block-head > *) .table-filter-count { order: 0; }
 .is-compact .table-filter-toggle {
   display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; cursor: pointer;
   background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-2); border-radius: 999px;

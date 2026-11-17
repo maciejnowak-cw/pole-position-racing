@@ -90,7 +90,7 @@ function layoutNav(force = false) {
   if (!force && !wide && width <= lastWidth) { lastWidth = width; return; }
   lastWidth = width;
   const wasOpen = menu.matches(':popover-open');
-  header.classList.add('is-wide', 'is-measuring');
+  header.classList.add('is-wide', 'is-measuring', 'nav-ready');
   menu.removeAttribute('popover');
   const fits = inner.scrollWidth <= inner.clientWidth + 1;
   if (!fits) {
