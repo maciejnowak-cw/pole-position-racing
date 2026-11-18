@@ -80,7 +80,7 @@ const DOCK_ICONS = {
   standings: '<rect x="5" y="6" width="14" height="13.5" rx="2"/><path d="M15 4v3.5M9 4v3.5M5 10.5h14M9 15h1.5M13.5 15h1.5"/>',
   goat: '<path d="M14 19a6 6 0 0 0-12 0"/><circle cx="8" cy="9" r="4"/><path d="M22 19a6 6 0 0 0-6-6 4 4 0 1 0 0-8"/>',
   teams: '<path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/>',
-  tracks: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  tracks: '<path d="M6.5 21V4M6.5 4h11l-2 4 2 4h-11"/>', // shifted right so the flag sits centred
   'hall-of-fame': '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 4M17 6h2.5a2.5 2.5 0 0 1-2.6 4"/>',
   stats: '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>',
 };
@@ -304,6 +304,13 @@ function glideToTop() {
   addEventListener('touchstart', () => cancelAnimationFrame(glide), { once: true, passive: true });
 }
 
+function inScrollBox(el) {
+  for (let n = el instanceof Element ? el : null; n && n !== document.body; n = n.parentElement) {
+    if (n.scrollHeight > n.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return true;
+  }
+  return false;
+}
+
 function initPullToRefresh() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const ptr = document.createElement('div');
@@ -320,7 +327,9 @@ function initPullToRefresh() {
     ptr.classList.toggle('ready', px >= READY);
   };
   addEventListener('touchstart', (e) => {
-    const blocked = busy || e.touches.length > 1 || document.querySelector(':popover-open, dialog[open]');
+    // Not while a pop-up is open, nor when the finger starts in a box that scrolls on its own (e.g. the season list).
+    const blocked = busy || e.touches.length > 1 || document.querySelector(':popover-open, dialog[open], .season-pick.open')
+      || inScrollBox(e.target);
     startY = !blocked && scrollY <= 0 ? e.touches[0].clientY : null;
     startX = e.touches[0].clientX;
   }, { passive: true });
