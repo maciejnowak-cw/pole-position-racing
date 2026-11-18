@@ -550,14 +550,14 @@ td > .pos-cell { display: grid; width: fit-content; margin-inline: auto; }
 }
 
 /* ---------- Tabs, toolbars ---------- */
-.tablist { display: flex; gap: 0.25rem; overflow-x: auto; border-bottom: 1px solid var(--line); margin-block: 1.5rem 1.25rem; scrollbar-width: none; }
+.tablist { display: flex; gap: 0.25rem; overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--line); margin-block: 1.5rem 1.25rem; scrollbar-width: none; }
 .tablist [role='tab'] {
   all: unset; position: relative; padding: 0.7rem 1rem; cursor: pointer; white-space: nowrap;
   font: 700 1.05rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
 }
 .tablist [role='tab']:hover { color: var(--text); }
 .tablist [role='tab'][aria-selected='true'] { color: var(--gold); }
-.tablist [role='tab'][aria-selected='true']::after { content: ''; position: absolute; inset: auto 0.6rem -1px; height: 3px; background: var(--gold-grad); transform: skewX(-20deg); }
+.tablist [role='tab'][aria-selected='true']::after { content: ''; position: absolute; inset: auto 0.6rem 0; height: 3px; background: var(--gold-grad); transform: skewX(-20deg); }
 .tablist [role='tab']:focus-visible { outline: 2px solid var(--gold); outline-offset: -4px; }
 [role='tabpanel']:focus-visible { outline: none; }
 /* Phones: one row of pill buttons that scrolls sideways, running to the screen edges. */
