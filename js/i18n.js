@@ -48,7 +48,7 @@ const DICT = {
     'goat.title': 'GOAT Ranking', 'goat.lead': 'Ranking wszech czasów według sumy zdobytych punktów.',
     'stats.title': 'Statystyki', 'stats.lead': 'Rekordy i rankingi z całej historii ligi.', 'stats.minRaces': 'min. {n} wyścigów',
     'stats.winsFromGrid': 'Wygrane według pola startowego', 'stats.bestSeasons': 'Najlepsze sezony (pkt / wyścig)',
-    'stats.lowestGridWins': 'Wygrane z najdalszych pól', 'stats.biggestGains': 'Największe awanse w wyścigu', 'stats.seasonRecords': 'Rekordy sezonów', 'stats.recWins': 'Najwięcej wygranych w sezonie', 'stats.recPodiums': 'Najwięcej podiów w sezonie', 'stats.recPoles': 'Najwięcej pole position w sezonie', 'stats.recPoints': 'Najwięcej punktów w sezonie', 'stats.recMargin': 'Największa przewaga mistrza', 'stats.recClosest': 'Najbardziej wyrównany sezon', 'stats.over': 'nad', 'common.from': 'Start', 'common.to': 'Meta', 'stats.gridN': 'Pole {n}', 'stats.winsFromGridAria': 'Wykres liczby wygranych z każdego pola startowego',
+    'stats.lowestGridWins': 'Wygrane z najdalszych pól', 'stats.biggestGains': 'Największe awanse w wyścigu', 'stats.seasonRecords': 'Rekordy sezonów', 'stats.allTimeRecords': 'Rekordy wszech czasów', 'stats.recTrackWins': 'Najwięcej wygranych na jednym torze', 'stats.recWinTracks': 'Wygrane na największej liczbie torów', 'stats.recTeamStreak': 'Najdłuższa seria wygranych zespołu', 'stats.recOneTwos': 'Najwięcej dubletów', 'stats.recOpenSeason': 'Najwięcej zwycięzców w sezonie', 'stats.recNoWin': 'Najwięcej startów bez wygranej', 'stats.nTracks': 'różne tory: {n}', 'stats.nInRow': '{n} z rzędu', 'stats.nOneTwos': 'dublety: {n}', 'stats.nStarts': 'starty: {n}', 'stats.recWins': 'Najwięcej wygranych w sezonie', 'stats.recPodiums': 'Najwięcej podiów w sezonie', 'stats.recPoles': 'Najwięcej pole position w sezonie', 'stats.recPoints': 'Najwięcej punktów w sezonie', 'stats.recMargin': 'Największa przewaga mistrza', 'stats.recClosest': 'Najbardziej wyrównany sezon', 'stats.over': 'nad', 'common.from': 'Start', 'common.to': 'Meta', 'stats.gridN': 'Pole {n}', 'stats.winsFromGridAria': 'Wykres liczby wygranych z każdego pola startowego',
     'driver.notFound': 'Nie znaleziono kierowcy.', 'driver.seasonsActive': 'Sezony',
     'driver.seasonTable': 'Sezony', 'driver.posInSeason': 'Miejsce',
    
@@ -116,7 +116,7 @@ const DICT = {
     'goat.title': 'GOAT Ranking', 'goat.lead': 'All-time ranking by total points scored.',
     'stats.title': 'Stats', 'stats.lead': 'Records and leaderboards from the whole league history.', 'stats.minRaces': 'min. {n} races',
     'stats.winsFromGrid': 'Wins by starting position', 'stats.bestSeasons': 'Best seasons (pts / race)',
-    'stats.lowestGridWins': 'Wins from furthest back', 'stats.biggestGains': 'Biggest climbs in a race', 'stats.seasonRecords': 'Season records', 'stats.recWins': 'Most wins in a season', 'stats.recPodiums': 'Most podiums in a season', 'stats.recPoles': 'Most poles in a season', 'stats.recPoints': 'Most points in a season', 'stats.recMargin': 'Biggest title margin', 'stats.recClosest': 'Closest title fight', 'stats.over': 'over', 'common.from': 'Start', 'common.to': 'Finish', 'stats.gridN': 'Grid {n}', 'stats.winsFromGridAria': 'Chart of wins from each starting position',
+    'stats.lowestGridWins': 'Wins from furthest back', 'stats.biggestGains': 'Biggest climbs in a race', 'stats.seasonRecords': 'Season records', 'stats.allTimeRecords': 'All-time records', 'stats.recTrackWins': 'Most wins at one track', 'stats.recWinTracks': 'Wins at the most tracks', 'stats.recTeamStreak': 'Longest team winning run', 'stats.recOneTwos': 'Most one-twos', 'stats.recOpenSeason': 'Most winners in a season', 'stats.recNoWin': 'Most starts without a win', 'stats.nTracks': 'different tracks: {n}', 'stats.nInRow': '{n} in a row', 'stats.nOneTwos': 'one-twos: {n}', 'stats.nStarts': 'starts: {n}', 'stats.recWins': 'Most wins in a season', 'stats.recPodiums': 'Most podiums in a season', 'stats.recPoles': 'Most poles in a season', 'stats.recPoints': 'Most points in a season', 'stats.recMargin': 'Biggest title margin', 'stats.recClosest': 'Closest title fight', 'stats.over': 'over', 'common.from': 'Start', 'common.to': 'Finish', 'stats.gridN': 'Grid {n}', 'stats.winsFromGridAria': 'Chart of wins from each starting position',
     'driver.notFound': 'Driver not found.', 'driver.seasonsActive': 'Seasons',
     'driver.seasonTable': 'Seasons', 'driver.posInSeason': 'Position',
    
@@ -162,8 +162,17 @@ export function t(key, vars) {
   return s;
 }
 
+// Counted nouns with the right plural form ("1 tytuł", "3 tytuły", "0 tytułów").
+const NOUNS = {
+  pl: { win: { one: 'wygrana', few: 'wygrane', many: 'wygranych', other: 'wygranej' }, title: { one: 'tytuł', few: 'tytuły', many: 'tytułów', other: 'tytułu' } },
+  en: { win: { one: 'win', other: 'wins' }, title: { one: 'title', other: 'titles' } },
+};
 export const fmt = {
   int: (n) => (n == null ? '—' : new Intl.NumberFormat(lang).format(n)),
+  count: (n, noun) => {
+    const forms = NOUNS[lang]?.[noun] || NOUNS.en[noun];
+    return `${new Intl.NumberFormat(lang).format(n)} ${forms[new Intl.PluralRules(lang).select(n)] || forms.other}`;
+  },
   dec: (n, d = 2) => (n == null || !Number.isFinite(n) ? '—' : new Intl.NumberFormat(lang, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n)),
   pct: (n) => (n == null || !Number.isFinite(n) ? '—' : new Intl.NumberFormat(lang, { style: 'percent', maximumFractionDigits: 1 }).format(n)),
   time: (ts) => new Intl.DateTimeFormat(lang, { dateStyle: 'short', timeStyle: 'short' }).format(ts),

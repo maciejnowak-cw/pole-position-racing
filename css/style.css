@@ -378,6 +378,7 @@ td .pair, th .pair { flex-wrap: nowrap; }
 .tile dd { margin: 0.2rem 0 0; display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .tile-value { font: italic 700 clamp(1.5rem, 3vw, 1.9rem) / 1.1 var(--font-display); min-width: 0; }
 .tile-value .who { max-width: 100%; }
+.tile-value .team { color: var(--text); font-weight: 700; } /* team names in stat tiles read as values, like driver names */
 .tile-value .who a { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .tile-value .flag { width: 1.1em; height: 0.82em; }
 .tile-sub { color: var(--muted); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 0.35rem 0.6rem; align-items: center; }

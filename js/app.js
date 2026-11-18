@@ -143,6 +143,20 @@ function resolve() {
   return V.notFound(t('state.notFound'), model, p.split('/').filter(Boolean).at(-1) || '');
 }
 
+// Reloading the page keeps the reader where they were: the position is saved when the page is left
+// and put back by the first render after a reload of the same address.
+const SCROLL_KEY = 'ppr-scroll';
+let restoreY = null;
+try {
+  history.scrollRestoration = 'manual';
+  const saved = JSON.parse(sessionStorage.getItem(SCROLL_KEY) || 'null');
+  const reload = performance.getEntriesByType('navigation')[0]?.type === 'reload';
+  if (reload && saved?.hash === location.hash && saved.y > 0) restoreY = saved.y;
+} catch { /* no storage: start at the top */ }
+const saveScroll = () => { try { sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ hash: location.hash, y: Math.round(scrollY) })); } catch { /* ignore */ } };
+addEventListener('pagehide', saveScroll);
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveScroll(); });
+
 function render({ animate = false, soft = false } = {}) {
   if (!model) return;
   rememberLastTrack();
@@ -157,7 +171,9 @@ function render({ animate = false, soft = false } = {}) {
     initTableFilters(main);
     document.title = view.title ? `${view.title} · Pole Position Racing` : 'Pole Position Racing';
     markCurrent();
-    if (soft) scrollTo(0, y); else scrollTo(0, 0);
+    if (soft) scrollTo(0, y);
+    else if (restoreY != null) { const to = restoreY; restoreY = null; scrollTo(0, to); requestAnimationFrame(() => scrollTo(0, to)); }
+    else scrollTo(0, 0);
   };
   const focus = () => { if (!soft) main.querySelector('h1')?.focus({ preventScroll: true }); };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;

@@ -494,7 +494,7 @@ export function goat(model) {
     <span class="gp-rank">${d.goat === 1 ? '🐐' : d.goat}</span>
     <span class="gp-name">${driverLink(model, d.name)}</span>
     <span class="gp-pts">${pts(d.points)} <span class="sub">${t('common.pts')}</span></span>
-    <span class="sub">${fmt.int(d.wins)} ${t('common.wins').toLowerCase()} · ${fmt.int(d.titles.length)} ${t('common.titles').toLowerCase()}</span>
+    <span class="sub">${fmt.count(d.wins, 'win')} · ${fmt.count(d.titles.length, 'title')}</span>
   </li>`).join('')}</ol>
   ${table({
     caption: t('goat.title'), filter: true, colsToggle: false,
@@ -579,12 +579,47 @@ export function stats(model) {
     ${widest ? statTile(t('stats.recMargin'), driverLink(model, widest.a.name), `+${fmt.int(widest.gap)} ${t('common.pts')} ${seasonTag(widest.season, { champion: true, label: t('common.champion') })}`) : ''}
     ${closest ? statTile(t('stats.recClosest'), driverLink(model, closest.a.name), `+${fmt.int(closest.gap)} ${t('common.pts')} ${esc(t('stats.over'))} ${driverLink(model, closest.b.name)} ${seasonTag(closest.season, { champion: true, label: t('common.champion') })}`) : ''}
   </dl>`;
+  // All-time records that the leaderboards above do not already show.
+  const wins = model.raceList.filter((r) => r.winner?.win && r.winner.driver);
+  const top = (map) => [...map.entries()].sort((a, b) => b[1] - a[1])[0];
+  const trackWins = new Map(), winTracks = new Map(), oneTwos = new Map();
+  for (const r of wins) {
+    const k = `${r.winner.driver}|${r.track}`;
+    trackWins.set(k, (trackWins.get(k) || 0) + 1);
+    if (!winTracks.has(r.winner.driver)) winTracks.set(r.winner.driver, new Set());
+    winTracks.get(r.winner.driver).add(r.track);
+    const p2 = r.entries.find((e) => e.pos === 2 && !e.dnf);
+    if (p2 && p2.teamKey === r.winner.teamKey && p2.teamKey !== RESERVE) oneTwos.set(p2.teamKey, (oneTwos.get(p2.teamKey) || 0) + 1);
+  }
+  const tw = top(trackWins);
+  const wt = top(new Map([...winTracks].map(([n, set]) => [n, set.size])));
+  const ot = top(oneTwos);
+  const openSeason = [...model.seasons.values()].map((x) => ({ n: x.n, k: new Set(x.races.filter((r) => r.winner?.win).map((r) => r.winner.driver)).size }))
+    .sort((a, b) => b.k - a.k || b.n - a.n)[0];
+  // Longest run of consecutive race wins by one team (reserve entries break the run).
+  let run = { key: null, n: 0 }, best = { key: null, n: 0 };
+  for (const r of wins) {
+    const key = r.winner.teamKey !== RESERVE ? r.winner.teamKey : null;
+    run = key && key === run.key ? { key, n: run.n + 1, from: run.from, to: r.season } : { key, n: key ? 1 : 0, from: r.season, to: r.season };
+    if (run.n > best.n) best = run;
+  }
+  const noWin = [...model.drivers].filter((d) => !d.wins).sort((a, b) => b.races - a.races)[0];
+  const span = (a, b) => (a === b ? seasonTag(a) : `${seasonTag(a)} – ${seasonTag(b)}`);
+  const allTime = `<dl class="tiles tiles-compact tiles-stack">
+    ${tw ? statTile(t('stats.recTrackWins'), driverLink(model, tw[0].split('|')[0]), `${fmt.int(tw[1])}× ${trackFlag(tw[0].split('|')[1])} ${esc(PHONE_TRACK_NAME[tw[0].split('|')[1]] || model.trackName[tw[0].split('|')[1]] || '')}`) : ''}
+    ${wt ? statTile(t('stats.recWinTracks'), driverLink(model, wt[0]), esc(t('stats.nTracks', { n: wt[1] }))) : ''}
+    ${best.n > 1 ? statTile(t('stats.recTeamStreak'), teamBadge(best.key, teamInfo(best.key).name), `${esc(t('stats.nInRow', { n: best.n }))} ${span(best.from, best.to)}`) : ''}
+    ${ot ? statTile(t('stats.recOneTwos'), teamBadge(ot[0], teamInfo(ot[0]).name), esc(t('stats.nOneTwos', { n: ot[1] }))) : ''}
+    ${openSeason ? statTile(t('stats.recOpenSeason'), fmt.int(openSeason.k), seasonTag(openSeason.n)) : ''}
+    ${noWin ? statTile(t('stats.recNoWin'), driverLink(model, noWin.name), esc(t('stats.nStarts', { n: noWin.races }))) : ''}
+  </dl>`;
   const maxGrid = Math.max(...Object.keys(model.winsFromGrid).map(Number));
   const gridItems = Array.from({ length: maxGrid }, (_, i) => ({ label: String(i + 1), value: model.winsFromGrid[i + 1] || 0, tip: `${t('stats.gridN', { n: i + 1 })}: ${model.winsFromGrid[i + 1] || 0} ${t('common.wins').toLowerCase()}` }));
 
   const html = `${hiddenHead(t('stats.title'))}
   <div class="boards">${boards}</div>
   ${section(t('stats.seasonRecords'), records, { id: 'st-records' })}
+  ${section(t('stats.allTimeRecords'), allTime, { id: 'st-alltime' })}
   ${section(t('stats.winsFromGrid'), barChart({ items: gridItems, label: t('stats.winsFromGridAria') }), { id: 'st-grid' })}
   <div class="grid-2">
     ${section(t('stats.bestSeasons'), table({
