@@ -237,6 +237,8 @@ main:focus { outline: none; }
 .more:hover { color: var(--gold-hi); text-decoration: underline; }
 .grid-2 { display: grid; gap: 0 clamp(1rem, 3vw, 2rem); grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); }
 .grid-2 > .block { margin-block: clamp(1.25rem, 3vw, 2rem); }
+/* A page whose heading is hidden starts with a section: no extra gap above it, so it lines up with the other pages. */
+main > .sr-only:first-child + .block { margin-block-start: 0; }
 
 .page-head {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;
