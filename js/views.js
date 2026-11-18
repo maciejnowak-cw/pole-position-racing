@@ -146,8 +146,11 @@ function cubicBezier(x1, y1, x2, y2) {
 
 /** Count the home-page numbers up from 0 each time the page is shown (skipped for reduced motion). */
 /* ---------- Home: random league fact ---------- */
-// One pick per page load, so a language switch or a background data refresh keeps the same fact.
+// One pick per visit to the home page: a language switch or a background data refresh keeps the same fact,
+// coming back to the home page from another page draws a new one (never the one just shown).
 let factSeed = Math.random();
+let lastFact = -1, lastSeed = -1;
+export function newFact() { factSeed = Math.random(); }
 
 function leagueFacts(model) {
   const facts = [];
@@ -321,7 +324,10 @@ export function home(model, cfg) {
     ${statTile(t('home.statWinners'), count(model.winnersCount))}
   </dl>`;
   const facts = leagueFacts(model);
-  const fact = facts[Math.floor(factSeed * facts.length)];
+  let pick = Math.floor(factSeed * facts.length);
+  if (pick === lastFact && facts.length > 1 && factSeed !== lastSeed) pick = (pick + 1 + Math.floor(factSeed * 997) % (facts.length - 1)) % facts.length;
+  lastFact = pick; lastSeed = factSeed;
+  const fact = facts[pick];
   const html = `
   <section class="hero" aria-labelledby="hero-h">
     <div class="hero-copy">

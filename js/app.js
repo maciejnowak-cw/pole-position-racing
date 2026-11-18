@@ -3,6 +3,7 @@ import { t, lang, setLang, fmt } from './i18n.js';
 import { readCache, fetchTexts, buildModel } from './data.js';
 import { initTooltip, initTableFilters, initStickyHeads, esc, SOCIAL, socialIcon } from './ui.js';
 import * as V from './views.js';
+import { TRACK_GEO } from './track-geo.js';
 import { initSearch } from './search.js';
 import { initDriverPreview } from './preview.js';
 
@@ -127,6 +128,7 @@ function resolve() {
 
 function render({ animate = false, soft = false } = {}) {
   if (!model) return;
+  rememberLastTrack();
   buildFooter();
   pending = false;
   const view = resolve();
@@ -157,8 +159,38 @@ function render({ animate = false, soft = false } = {}) {
   }
 }
 
-function showMessage(key) {
-  main.innerHTML = `<div class="state"><div class="loader" aria-hidden="true"></div><p>${esc(t(key))}</p></div>`;
+// The latest race's track, remembered from the previous visit so the loading screen can outline the same circuit.
+const LAST_TRACK_KEY = 'ppr-last-track';
+function rememberLastTrack() {
+  const code = model?.raceList.at(-1)?.track;
+  try { if (code && localStorage.getItem(LAST_TRACK_KEY) !== code) localStorage.setItem(LAST_TRACK_KEY, code); } catch { /* storage unavailable */ }
+}
+function skelTrack() {
+  let code = null;
+  try { code = localStorage.getItem(LAST_TRACK_KEY); } catch { /* storage unavailable */ }
+  const g = TRACK_GEO[code];
+  // First visit ever: a generic circuit outline instead.
+  const [vb, d, w] = g ? [g.vb, g.d, 24] : ['0 0 500 300', 'M70 220 L120 90 Q130 62 160 70 L250 96 Q275 103 290 84 L330 40 Q350 20 375 34 L440 80 Q462 96 448 120 L400 190 Q388 208 400 224 L418 246 Q428 262 410 266 L110 266 Q62 266 70 220 Z', 14];
+  return `<svg class="skel-track" viewBox="${vb}" aria-hidden="true" focusable="false"><path d="${d}" stroke-width="${w}"/></svg>`;
+}
+
+// First load with nothing cached: grey placeholder shapes in the layout of the page being opened
+// (the home page or a page with tabs and a table), so the content drops into place without jumps.
+function showSkeleton() {
+  const bar = (cls) => `<span class="skel ${cls}"></span>`;
+  const table = (n) => `<div class="skel-card skel-table">${'<div class="skel-row"><span class="skel skel-pos"></span><span class="skel skel-name"></span><span class="skel skel-num"></span></div>'.repeat(n)}</div>`;
+  const block = (body) => `<div class="skel-block">${bar('skel-head')}${body}</div>`;
+  const home = !path().split('/')[0];
+  const body = home
+    ? `<div class="skel-card skel-hero"><div class="skel-hero-copy">${bar('skel-logo')}${bar('skel-title')}<div class="skel-btns">${bar('skel-btn').repeat(3)}</div></div>${skelTrack()}</div>
+      <div class="skel-counters">${bar('skel-tile').repeat(4)}</div>
+      <div class="skel-card skel-fact">${bar('skel-kicker')}${bar('skel-line')}${bar('skel-who')}</div>
+      <div class="skel-home">
+        <div class="skel-main">${block('<div class="skel-card skel-race"></div>')}<div class="skel-pair">${block(table(10))}${block(table(10))}</div></div>
+        <div class="skel-side">${block(table(10))}</div>
+      </div>`
+    : `${bar('skel-tabs')}${block(table(12))}`;
+  main.innerHTML = `<div class="skeleton" aria-busy="true"><p class="sr-only" role="status">${esc(t('state.loading'))}</p>${body}</div>`;
 }
 
 // Nothing to show at all: explain what happened and offer a manual retry next to the automatic one.
@@ -241,7 +273,7 @@ async function boot() {
     scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     main.querySelector('h1')?.focus({ preventScroll: true });
   });
-  showMessage('state.loading');
+  showSkeleton();
   await loadConfig();
   buildNav();
   initSearch(header.querySelector('.search-button'), () => model);
@@ -268,6 +300,7 @@ async function boot() {
   addEventListener('hashchange', () => {
     if (typeof history.state?.depth === 'number') depth = history.state.depth; // back/forward
     else history.replaceState({ depth: ++depth }, '');
+    if (!path().split('/')[0]) V.newFact(); // back on the home page: draw a new fact
     render({ animate: true });
   });
   document.addEventListener('click', (e) => {
