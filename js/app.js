@@ -1,6 +1,7 @@
 // App shell: routing, navigation, language switch and silent background refresh of sheet data.
 import { t, lang, setLang, fmt } from './i18n.js';
 import { readCache, fetchTexts, buildModel } from './data.js';
+import { TRACK_COUNTRY } from './countries.js';
 import { initTooltip, initTableFilters, initStickyHeads, esc, SOCIAL, socialIcon } from './ui.js';
 import * as V from './views.js';
 import { TRACK_GEO } from './track-geo.js';
@@ -206,7 +207,8 @@ function showError() {
 // Data is on screen but the latest refresh failed: a thin banner with the saved time and a retry button.
 function updateBanner() {
   let bar = document.getElementById('stale-banner');
-  if (!(model && fetchFailed)) { bar?.remove(); return; }
+  // Offline the saved data is shown without any notice; the page refreshes on its own once the connection is back.
+  if (!(model && fetchFailed) || !navigator.onLine) { bar?.remove(); return; }
   if (!bar) {
     bar = document.createElement('div');
     bar.id = 'stale-banner';
@@ -247,6 +249,26 @@ async function refresh() {
     if (!model) { showError(); clearTimeout(retryTimer); retryTimer = setTimeout(refresh, 30_000); }
   }
   updateBanner();
+}
+
+/* Offline: the service worker keeps every file the page fetches. Flags come from a CDN one country at a time,
+   so fetch the ones the league uses once (in idle time) — then every page shows its flags without internet. */
+const FLAG_URL = 'https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/flags/4x3/';
+function warmOffline() {
+  if (!model || !('caches' in window) || !navigator.onLine) return;
+  const key = 'ppr-flags-warm';
+  const codes = new Set([...model.drivers.map((d) => d.flag), ...model.tracks.map((tr) => TRACK_COUNTRY[tr.code])].filter(Boolean));
+  const sig = [...codes].sort().join(',');
+  try { if (localStorage.getItem(key) === sig) return; } catch { /* storage unavailable */ }
+  // Straight into the service worker's CDN cache (works on the first visit, before the worker controls the page).
+  const run = () => caches.open('ppr-cdn')
+    // no-cors, the same way the flag stylesheet loads them, so the saved copy matches what pages ask for.
+    .then((c) => Promise.allSettled([...codes].map((code) => {
+      const url = `${FLAG_URL}${code}.svg`;
+      return fetch(url, { mode: 'no-cors' }).then((res) => c.put(url, res));
+    })))
+    .then(() => { try { localStorage.setItem(key, sig); } catch { /* storage unavailable */ } });
+  ('requestIdleCallback' in window ? requestIdleCallback : setTimeout)(run);
 }
 
 async function loadConfig() {
@@ -335,6 +357,9 @@ async function boot() {
     } catch (err) { console.warn('Cached data unusable:', err); model = null; texts = null; }
   }
   await refresh();
+  warmOffline();
+  addEventListener('online', () => refresh());
+  addEventListener('offline', updateBanner);
 
   const every = Math.max(1, cfg.refreshMinutes || 5) * 60_000;
   setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, every);
