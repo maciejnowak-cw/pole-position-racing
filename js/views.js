@@ -361,10 +361,10 @@ export function home(model, cfg) {
 function driverStandingsTable(model, s) {
   return table({
     caption: `${t('season.drivers')} — ${t('common.season')} ${s.n}`,
-    rows: s.drivers,
+    rows: s.drivers, colsToggle: false, cls: 'st-table st-drivers',
     columns: [
       standingsPosCol(), driverCol(model),
-      { label: t('common.team'), value: (r) => r.lastTeam, html: (r) => teamBadge(r.lastTeamKey, r.lastTeam) },
+      { label: t('common.team'), keep: true, value: (r) => r.lastTeam, html: (r) => teamBadge(r.lastTeamKey, r.lastTeam) },
       numCol(t('common.races'), (r) => r.races),
       numCol(t('common.wins'), (r) => r.wins),
       numCol(t('common.podiums'), (r) => r.podiums),
@@ -379,13 +379,13 @@ function driverStandingsTable(model, s) {
 function constructorTable(model, s) {
   return table({
     caption: `${t('season.constructors')} — ${t('common.season')} ${s.n}`,
-    rows: s.constructors,
+    rows: s.constructors, colsToggle: false, cls: 'st-table',
     columns: [
       standingsPosCol(),
       { label: t('common.team'), rowHeader: true, sticky: 2, cls: 'c-driver', value: (r) => r.name, html: (r) => teamBadge(r.key, r.name) },
       { label: t('common.lineup'), sort: false, html: (r) => `<span class="list">${r.lineup.map((d) => driverLink(model, d.name)).join('')}</span>` },
-      numCol(t('common.wins'), (r) => r.wins),
-      numCol(t('common.podiums'), (r) => r.podiums),
+      numCol(t('common.wins'), (r) => r.wins, { keep: true }),
+      numCol(t('common.podiums'), (r) => r.podiums, { keep: true }),
       numCol(t('common.polesShort'), (r) => r.poles, { abbr: t('common.poles') }),
       numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' }),
     ],
@@ -406,7 +406,7 @@ function resultsMatrix(model, s) {
     },
   }));
   return `<div class="matrix">${table({
-    caption: `${t('common.timeline')} — ${t('common.season')} ${s.n}`,
+    caption: `${t('common.timeline')} — ${t('common.season')} ${s.n}`, compact: false,
     rows: s.drivers,
     columns: [posCol(), driverCol(model), ...cols, numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' })],
   })}</div>
@@ -543,21 +543,21 @@ export function stats(model) {
   ${section(t('stats.winsFromGrid'), barChart({ items: gridItems, label: t('stats.winsFromGridAria') }), { id: 'st-grid' })}
   <div class="grid-2">
     ${section(t('stats.bestSeasons'), table({
-      caption: t('stats.bestSeasons'), rows: bestSeasons.slice(0, 15),
-      columns: [posCol((r) => bestSeasons.indexOf(r) + 1), driverCol(model), { label: t('common.season'), type: 'num', value: (r) => r.season, html: (r) => seasonTag(r.season) }, numCol(t('common.races'), (r) => r.races), numCol(t('common.points'), (r) => r.points), numCol(t('common.ppr'), (r) => r.ppr.toFixed(3), { html: (r) => fmt.dec(r.ppr), cls: 'c-pts' })],
+      caption: t('stats.bestSeasons'), rows: bestSeasons.slice(0, 15), colsToggle: false,
+      columns: [posCol((r) => bestSeasons.indexOf(r) + 1), driverCol(model), { label: t('common.season'), type: 'num', keep: true, value: (r) => r.season, html: (r) => seasonTag(r.season) }, numCol(t('common.races'), (r) => r.races), numCol(t('common.points'), (r) => r.points), numCol(t('common.ppr'), (r) => r.ppr.toFixed(3), { html: (r) => fmt.dec(r.ppr), cls: 'c-pts' })],
     }), { id: 'st-best' })}
     ${section(t('stats.lowestGridWins'), table({
-      caption: t('stats.lowestGridWins'), rows: furthest,
-      columns: [{ label: t('common.grid'), type: 'num', cls: 'c-pos', sticky: 1, value: (r) => r.winner.grid, html: (r) => `<span class="pos">${r.winner.grid}</span>` }, driverCol(model, (r) => r.winner.driver), { label: t('common.track'), value: (r) => r.track, html: (r) => `<a href="${href.race(r.id)}">${trackFlag(r.track)} ${esc(model.trackName[r.track] || r.track)}</a>` }, { label: t('common.season'), type: 'num', value: (r) => r.season, html: (r) => seasonTag(r.season) }],
+      caption: t('stats.lowestGridWins'), rows: furthest, colsToggle: false,
+      columns: [{ label: t('common.grid'), type: 'num', cls: 'c-pos', sticky: 1, value: (r) => r.winner.grid, html: (r) => `<span class="pos">${r.winner.grid}</span>` }, driverCol(model, (r) => r.winner.driver), { label: t('common.track'), keep: true, value: (r) => r.track, html: (r) => `<a href="${href.race(r.id)}">${trackFlag(r.track)} ${esc(model.trackName[r.track] || r.track)}</a>` }, { label: t('common.season'), type: 'num', value: (r) => r.season, html: (r) => seasonTag(r.season) }],
     }), { id: 'st-far' })}
   </div>
   ${section(t('stats.biggestGains'), table({
-    caption: t('stats.biggestGains'), rows: gains.slice(0, 15),
+    caption: t('stats.biggestGains'), rows: gains.slice(0, 15), colsToggle: false,
     columns: [
       { label: t('common.gained'), type: 'num', cls: 'c-pos', sticky: 1, value: (r) => r.gain, html: (r) => `<span class="delta up">▲${r.gain}</span>` },
       driverCol(model, (r) => r.driver),
-      numCol(t('common.from'), (r) => r.grid, { desc: false, html: (r) => `P${r.grid}` }),
-      numCol(t('common.to'), (r) => r.pos, { desc: false, html: (r) => `P${r.pos}` }),
+      numCol(t('common.from'), (r) => r.grid, { desc: false, keep: true, html: (r) => `P${r.grid}` }),
+      numCol(t('common.to'), (r) => r.pos, { desc: false, keep: true, html: (r) => `P${r.pos}` }),
       { label: t('common.track'), value: (r) => r.raceObj.track, html: (r) => `<a href="${href.race(r.raceObj.id)}">${trackFlag(r.raceObj.track)} ${esc(model.trackName[r.raceObj.track] || r.raceObj.track)}</a>${sprintBadge(r.raceObj)}` },
       { label: t('common.season'), type: 'num', value: (r) => r.raceObj.id, html: (r) => seasonTag(r.raceObj.season) },
     ],
@@ -626,11 +626,11 @@ export function driver(model, name) {
     items: [...Array.from({ length: maxPos }, (_, i) => ({ label: `${i + 1}`, value: d.positions[i + 1] || 0, tip: `P${i + 1}: ${d.positions[i + 1] || 0}×` })), { label: 'DNF', value: d.positions.DNF || 0, tip: `DNF: ${d.positions.DNF || 0}×` }],
   });
   const seasonTable = table({
-    caption: `${t('driver.seasonTable')} — ${d.name}`, rows: seasonsList,
+    caption: `${t('driver.seasonTable')} — ${d.name}`, rows: seasonsList, colsToggle: false,
     columns: [
       { label: t('common.season'), type: 'num', rowHeader: true, sticky: 1, cls: 'c-pos', value: ([n]) => n, html: ([n, s]) => seasonTag(n, { champion: s.finished && s.pos === 1 }) },
-      { label: t('common.team'), value: ([, s]) => s.team, html: ([, s]) => teamBadge(s.teamKey, s.team) },
-      { label: t('driver.posInSeason'), type: 'num', value: ([, s]) => s.pos, html: ([, s]) => posBadge(s.pos) },
+      { label: t('common.team'), keep: true, value: ([, s]) => s.team, html: ([, s]) => teamBadge(s.teamKey, s.team) },
+      { label: t('driver.posInSeason'), type: 'num', keep: true, value: ([, s]) => s.pos, html: ([, s]) => posBadge(s.pos) },
       numCol(t('common.races'), ([, s]) => s.races),
       numCol(t('common.wins'), ([, s]) => s.wins),
       numCol(t('common.podiums'), ([, s]) => s.podiums),
@@ -639,19 +639,19 @@ export function driver(model, name) {
   });
   const teamRows = [...d.teams.values()].sort((a, b) => b.races - a.races);
   const teamTable = table({
-    caption: `${t('common.byTeam')} — ${d.name}`, rows: teamRows,
+    caption: `${t('common.byTeam')} — ${d.name}`, rows: teamRows, colsToggle: false,
     columns: [
       { label: t('common.team'), rowHeader: true, value: (r) => r.name, html: (r) => teamBadge(r.key, r.name) },
-      numCol(t('common.races'), (r) => r.races), numCol(t('common.wins'), (r) => r.wins),
+      numCol(t('common.races'), (r) => r.races, { keep: true }), numCol(t('common.wins'), (r) => r.wins),
       numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' }),
     ],
   });
   const trackRows = [...d.tracks.values()].sort((a, b) => b.points - a.points);
   const trackTable = table({
-    caption: `${t('common.byTrack')} — ${d.name}`, rows: trackRows,
+    caption: `${t('common.byTrack')} — ${d.name}`, rows: trackRows, colsToggle: false,
     columns: [
       { label: t('common.track'), rowHeader: true, sticky: 2, cls: 'c-driver', value: (r) => model.trackName[r.code] || r.code, html: (r) => trackLink(model, r.code) },
-      numCol(t('common.races'), (r) => r.races), numCol(t('common.wins'), (r) => r.wins),
+      numCol(t('common.races'), (r) => r.races, { keep: true }), numCol(t('common.wins'), (r) => r.wins),
       numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.polesShort'), (r) => r.poles, { abbr: t('common.poles') }),
       numCol(t('common.ppr'), (r) => (r.points / r.races).toFixed(3), { html: (r) => fmt.dec(r.points / r.races) }),
       numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' }),
@@ -663,9 +663,9 @@ export function driver(model, name) {
     caption: `${t('common.teammates')} — ${d.name}`, rows: mates,
     columns: [
       driverCol(model),
-      numCol(t('common.racesTogether'), (r) => r.races),
-      { label: t('common.quali'), type: 'num', desc: true, value: (r) => r.qualiW - r.qualiL, html: (r) => wl(r.qualiW, r.qualiL) },
-      { label: t('common.race'), type: 'num', desc: true, value: (r) => r.raceW - r.raceL, html: (r) => wl(r.raceW, r.raceL) },
+      numCol(t('common.racesTogether'), (r) => r.races, { keep: true }),
+      { label: t('common.quali'), type: 'num', desc: true, keep: true, value: (r) => r.qualiW - r.qualiL, html: (r) => wl(r.qualiW, r.qualiL) },
+      { label: t('common.race'), type: 'num', desc: true, keep: true, value: (r) => r.raceW - r.raceL, html: (r) => wl(r.raceW, r.raceL) },
     ],
   });
   // Career milestones in race order; each links to the race where it happened.
@@ -677,23 +677,21 @@ export function driver(model, name) {
     ['ms.firstPole', firstOf((e) => e.pp)],
     ['ms.firstWin', firstOf((e) => e.win)],
     ['ms.firstHatTrick', firstOf((e) => e.win && e.pp && e.fl)],
+    // Titles are placed at the driver's last race of that season (for the constructors' title: last race for the winning team).
+    ['ms.firstTitle', (() => {
+      const s = [...model.seasons.values()].find((x) => x.champion?.name === d.name);
+      return s && d.entries.findLast((e) => e.season === s.n);
+    })()],
+    ['ms.firstTeamTitle', (() => {
+      for (const s of model.seasons.values()) {
+        const key = s.constructorChampion?.key;
+        const e = key && d.entries.findLast((x) => x.season === s.n && x.teamKey === key);
+        if (e) return e;
+      }
+    })()],
     ...[50, 100, 150, 200, 250, 300].filter((n) => d.entries.length >= n).map((n) => [['ms.starts', { n }], d.entries[n - 1]]),
-  ].filter(([, e]) => e).map(([key, e], i) => ({ key, e, i })).sort((a, b) => a.e.race - b.e.race || a.i - b.i);
-  // Milestones reached in the same race share one card (e.g. a debut win: debut, first points, podium, win).
-  const msGroups = [];
-  for (const m of msList) {
-    const last = msGroups.at(-1);
-    if (last && last.e.race === m.e.race) last.keys.push(m.key); else msGroups.push({ e: m.e, keys: [m.key] });
-  }
-  const milestones = `<ol class="milestones">${msGroups.map(({ keys, e }) => {
-    const label = keys.map((key) => (Array.isArray(key) ? t(key[0], key[1]) : t(key))).join(' · ');
-    const race = model.races.get(e.race);
-    return `<li class="${keys.includes('ms.firstWin') ? 'ms-gold' : ''}">
-      <p class="kicker">${esc(label)}</p>
-      <a class="who" href="${href.race(e.race)}">${trackFlag(e.track)}<span>${esc(model.trackName[e.track] || e.track)}</span></a>
-      <p class="sub">S${e.season} · R${race.round} · ${e.dnf ? 'DNF' : e.pos ? 'P' + e.pos : '—'}</p>
-    </li>`;
-  }).join('')}</ol>`;
+  ];
+  const milestones = milestonesHtml(model, msList);
   const historyRows = [...d.entries].reverse();
   const historyTable = table({
     caption: `${t('common.history')} — ${d.name}`, rows: historyRows, filter: true,
@@ -702,7 +700,7 @@ export function driver(model, name) {
       { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => `<a href="${href.race(r.race)}" class="who">${trackFlag(r.track)}<span>${esc(model.trackName[r.track] || r.track)}</span></a> <span class="sub">R${model.races.get(r.race).round}</span>${sprintBadge(model.races.get(r.race))}${ppFl(r)}` },
       { label: t('common.team'), value: (r) => r.team, html: (r) => teamBadge(r.teamKey, r.team) },
       numCol(t('common.grid'), (r) => r.grid ?? '', { desc: false, html: (r) => (r.grid ? `${r.grid}` : '—') }),
-      { label: t('common.result'), type: 'num', value: (r) => (r.dnf ? 99 : r.pos), html: (r) => posBadge(r.pos, r.dnf) },
+      { label: t('common.result'), type: 'num', keep: true, value: (r) => (r.dnf ? 99 : r.pos), html: (r) => posBadge(r.pos, r.dnf) },
       numCol(t('common.points'), (r) => r.pts, { cls: 'c-pts' }),
     ],
   });
@@ -755,6 +753,31 @@ function chip(text, { gold = false, title = '', link = '' } = {}) {
   return link ? `<a ${attrs} href="${link}">${text}</a>` : `<span ${attrs}>${text}</span>`;
 }
 
+/**
+ * Milestone cards in race order; each links to the race where it happened.
+ * items: [key, entry, who?] — key is an i18n key or [key, params]; who (team pages) names the driver under the track.
+ * Milestones reached in the same race share one card (e.g. a debut win: debut, first points, podium, win).
+ */
+const MS_GOLD = ['ms.firstWin', 'ms.firstTitle', 'ms.firstTeamTitle', 'ms.firstDriverTitle', 'ms.firstOneTwo'];
+function milestonesHtml(model, items) {
+  const list = items.filter(([, e]) => e).map(([key, e, who], i) => ({ key, e, who, i })).sort((a, b) => a.e.race - b.e.race || a.i - b.i);
+  const groups = [];
+  for (const m of list) {
+    const last = groups.at(-1);
+    if (last && last.e.race === m.e.race) { last.keys.push(m.key); if (!last.who) last.who = m.who; } else groups.push({ e: m.e, keys: [m.key], who: m.who });
+  }
+  return `<ol class="milestones">${groups.map(({ keys, e, who }) => {
+    const label = keys.map((key) => (Array.isArray(key) ? t(key[0], key[1]) : t(key))).join(' · ');
+    const race = model.races.get(e.race);
+    const tail = who === undefined ? (e.dnf ? 'DNF' : e.pos ? 'P' + e.pos : '—') : who;
+    return `<li class="${keys.some((k) => MS_GOLD.includes(k)) ? 'ms-gold' : ''}">
+      <p class="kicker">${esc(label)}</p>
+      <a class="who" href="${href.race(e.race)}">${trackFlag(e.track)}<span>${esc(model.trackName[e.track] || e.track)}</span></a>
+      <p class="sub">S${e.season} · R${race.round}${tail ? ` · ${esc(tail)}` : ''}</p>
+    </li>`;
+  }).join('')}</ol>`;
+}
+
 export function team(model, key) {
   const tm = model.teamMap.get(key);
   if (!tm) return notFound(t('team.notFound'), model, key);
@@ -776,6 +799,25 @@ export function team(model, key) {
     tm.driverTitles.length ? chip(`★ ${esc(t('common.driverTitles'))} ×${tm.driverTitles.length}`, { gold: true, title: tm.driverTitles.map((x) => `S${x.season}`).join(', ') }) : '',
     !tm.titles.length && best ? chip(`${esc(t('common.bestResult'))}: ${ordinalPos(best)} ×${finishedPos.filter((p) => p === best).length}`) : '',
   ].filter(Boolean).join('');
+  // Team milestones (no debut): each card names the driver who got it; titles sit at the season's last race for the team.
+  const tEntries = model.results.filter((r) => r.teamKey === key).sort((a, b) => a.race - b.race);
+  const tFirst = (f) => tEntries.find(f);
+  const raceIds = [...new Set(tEntries.map((r) => r.race))];
+  const oneTwo = raceIds.map((id) => tEntries.filter((r) => r.race === id && !r.dnf)).find((rs) => rs.some((r) => r.pos === 1) && rs.some((r) => r.pos === 2))?.find((r) => r.pos === 1);
+  const pts = tFirst((r) => r.pts > 0), pod = tFirst((r) => r.podium), pole = tFirst((r) => r.pp), win = tFirst((r) => r.win);
+  const teamTitle = tm.titles.length ? tEntries.findLast((r) => r.season === tm.titles[0]) : null;
+  const dt = tm.driverTitles[0];
+  const driverTitle = dt ? tEntries.findLast((r) => r.season === dt.season && r.driver === dt.driver) : null;
+  const teamMs = milestonesHtml(model, [
+    ['ms.firstPoints', pts, pts?.driver],
+    ['ms.firstPodium', pod, pod?.driver],
+    ['ms.firstPole', pole, pole?.driver],
+    ['ms.firstWin', win, win?.driver],
+    ['ms.firstOneTwo', oneTwo, ''],
+    ['ms.firstTeamTitle', teamTitle, ''],
+    ['ms.firstDriverTitle', driverTitle, dt?.driver],
+    ...[50, 100, 150, 200, 250].filter((n) => raceIds.length >= n).map((n) => [['ms.teamStarts', { n }], tEntries.find((r) => r.race === raceIds[n - 1]), '']),
+  ]);
   const tiles = `<dl class="tiles tiles-compact tiles-5">
     ${statTile(t('common.points'), fmt.int(tm.points))}
     ${statTile(t('common.races'), fmt.int(tm.raceCount))}
@@ -794,15 +836,16 @@ export function team(model, key) {
     <p class="badges">${badges}</p></div></div>
   </header>
   ${tiles}
+  ${teamMs.includes('<li') ? section(t('ms.title'), teamMs, { id: 't-ms' }) : ''}
   ${section(t('common.seasonPoints'), barChart({
     label: `${t('common.seasonPoints')} — ${tm.info.name}`,
     items: seasonRows.map((r) => ({ label: `S${r.season}`, value: r.points, tip: `${t('common.season')} ${r.season}: ${fmt.int(r.points)} ${t('common.pts')} · P${r.pos}` })),
   }), { id: 't-points' })}
   ${section(t('common.seasons'), table({
-    caption: `${t('common.seasons')} — ${tm.info.name}`, rows: seasonRows,
+    caption: `${t('common.seasons')} — ${tm.info.name}`, rows: seasonRows, colsToggle: false,
     columns: [
       { label: t('common.season'), type: 'num', rowHeader: true, sticky: 1, cls: 'c-pos', value: (r) => r.season, html: (r) => seasonTag(r.season, { champion: r.finished && r.pos === 1, label: t('common.constructorChampion') }) },
-      { label: t('common.pos'), type: 'num', value: (r) => r.pos, html: (r) => posBadge(r.pos) },
+      { label: t('common.pos'), type: 'num', keep: true, value: (r) => r.pos, html: (r) => posBadge(r.pos) },
       { label: t('common.drivers'), sort: false, html: (r) => `<span class="list">${[...r.drivers].map((x) => driverLink(model, x)).join('')}</span>` },
       numCol(t('common.wins'), (r) => r.wins), numCol(t('common.podiums'), (r) => r.podiums),
       numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' }),
@@ -810,7 +853,7 @@ export function team(model, key) {
   }), { id: 't-seasons' })}
   ${section(t('team.drivers'), table({
     caption: `${t('team.drivers')} — ${tm.info.name}`, rows: driverRows, filter: driverRows.length > 12,
-    columns: [driverCol(model), numCol(t('common.races'), (r) => r.races), numCol(t('common.wins'), (r) => r.wins), numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.polesShort'), (r) => r.poles, { abbr: t('common.poles') }), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' })],
+    columns: [driverCol(model), numCol(t('common.races'), (r) => r.races), numCol(t('common.wins'), (r) => r.wins, { keep: true }), numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.polesShort'), (r) => r.poles, { abbr: t('common.poles') }), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' })],
   }), { id: 't-drivers' })}
   <div class="grid-2">
     ${section(t('common.winsList'), table({
@@ -818,14 +861,14 @@ export function team(model, key) {
       columns: [
         { label: t('common.season'), type: 'num', sticky: 1, cls: 'c-pos', value: (r) => r.race, html: (r) => seasonTag(r.season) },
         { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => `<a class="who" href="${href.race(r.race)}">${trackFlag(r.track)}<span>${esc(model.trackName[r.track] || r.track)}</span></a>` },
-        { label: t('common.driver'), value: (r) => r.driver, html: (r) => driverLink(model, r.driver) },
+        { label: t('common.driver'), keep: true, value: (r) => r.driver, html: (r) => driverLink(model, r.driver) },
       ],
     }), { id: 't-wins', cls: 'tall' })}
     ${section(t('team.tracks'), table({
       caption: `${t('team.tracks')} — ${tm.info.name}`, rows: [...tm.tracks.values()].sort((a, b) => b.points - a.points),
       columns: [
         { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.code] || r.code, html: (r) => trackLink(model, r.code) },
-        numCol(t('common.wins'), (r) => r.wins), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' }),
+        numCol(t('common.wins'), (r) => r.wins, { keep: true }), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' }),
       ],
     }), { id: 't-tracks', cls: 'tall' })}
   </div>`;
@@ -910,7 +953,7 @@ export function track(model, code) {
   </header>
   ${tiles}
   ${section(t('track.bySeason'), table({
-    caption: `${t('track.bySeason')} — ${tr.name}`, rows: [...tr.races].reverse(),
+    caption: `${t('track.bySeason')} — ${tr.name}`, rows: [...tr.races].reverse(), colsToggle: false,
     columns: [
       { label: t('common.season'), type: 'num', sticky: 1, cls: 'c-pos', value: (r) => r.id, html: (r) => seasonTag(r.season) },
       { label: t('common.round'), type: 'num', value: (r) => r.round, html: (r) => `<a href="${href.race(r.id)}">R${r.round}</a>${sprintBadge(r)}` },
@@ -925,8 +968,8 @@ export function track(model, code) {
       columns: [posCol((r) => tr.driverList.indexOf(r) + 1), driverCol(model), numCol(t('common.races'), (r) => r.races), numCol(t('common.wins'), (r) => r.wins), numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.polesShort'), (r) => r.poles, { abbr: t('common.poles') }), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' })],
     }), { id: 'tr-drivers', cls: 'tall' })}
     ${section(t('track.teamTable'), table({
-      caption: `${t('track.teamTable')} — ${tr.name}`, rows: tr.teamList,
-      columns: [posCol((r) => tr.teamList.indexOf(r) + 1), { label: t('common.team'), rowHeader: true, value: (r) => teamInfo(r.key).name, html: (r) => teamBadge(r.key, teamInfo(r.key).name) }, numCol(t('common.wins'), (r) => r.wins), numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' })],
+      caption: `${t('track.teamTable')} — ${tr.name}`, rows: tr.teamList, colsToggle: false,
+      columns: [posCol((r) => tr.teamList.indexOf(r) + 1), { label: t('common.team'), rowHeader: true, value: (r) => teamInfo(r.key).name, html: (r) => teamBadge(r.key, teamInfo(r.key).name) }, numCol(t('common.wins'), (r) => r.wins, { keep: true }), numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' })],
     }), { id: 'tr-teams', cls: 'tall' })}
   </div>`;
   return { title: tr.name, html };
@@ -962,17 +1005,17 @@ export function race(model, id) {
     ${climb ? statTile(t('race.biggestGain'), driverLink(model, climb.driver), `<span class="delta up">▲${climb.grid - climb.pos}</span> P${climb.grid} → P${climb.pos}`) : ''}
   </dl>
   ${section(t('race.classification'), table({
-    caption: `${t('race.classification')} — ${name}`, rows: r.entries,
+    caption: `${t('race.classification')} — ${name}`, rows: r.entries, colsToggle: false,
     columns: [
-      { label: t('common.pos'), type: 'num', sticky: 1, cls: 'c-pos', value: (e) => (e.dnf ? 99 + (e.pos || 0) : e.pos), html: (e) => posBadge(e.pos, e.dnf) },
+      // Places gained/lost since the start sit next to the position, as in the standings.
+      { label: t('common.pos'), type: 'num', sticky: 1, cls: 'c-pos', value: (e) => (e.dnf ? 99 + (e.pos || 0) : e.pos), html: (e) => {
+        const g = e.grid && e.pos && !e.dnf ? e.grid - e.pos : 0;
+        const move = g ? `<span class="pos-move ${g > 0 ? 'up' : 'down'}" title="${esc(t('common.gained'))}">${g > 0 ? '▲' : '▼'}${Math.abs(g)}</span>` : '<span class="pos-move"></span>';
+        return `<span class="pos-cell">${posBadge(e.pos, e.dnf)}${move}</span>`;
+      } },
       { ...driverCol(model, (e) => e.driver), html: (e) => `<span class="who-badges">${driverLink(model, e.driver)}${ppFl(e)}</span>` },
       { label: t('common.team'), value: (e) => e.team, html: (e) => teamBadge(e.teamKey, e.team) },
       numCol(t('common.grid'), (e) => e.grid ?? '', { desc: false, html: (e) => (e.grid ? `${e.grid}` : '—') }),
-      { label: t('common.gained'), type: 'num', desc: true, value: (e) => (e.grid && e.pos && !e.dnf ? e.grid - e.pos : ''), html: (e) => {
-        if (!e.grid || !e.pos || e.dnf) return '<span class="sub">—</span>';
-        const g = e.grid - e.pos;
-        return `<span class="delta ${g > 0 ? 'up' : g < 0 ? 'down' : ''}">${g > 0 ? '▲' + g : g < 0 ? '▼' + -g : '='}</span>`;
-      } },
       numCol(t('common.points'), (e) => e.pts, { cls: 'c-pts' }),
     ],
   }), { id: 'r-class' })}
@@ -1088,7 +1131,7 @@ export function notFound(msg, model = null, query = '') {
       <div class="nf-visual" aria-hidden="true">${trackMap(code, { cls: 'nf-track' })}<span class="nf-code">404</span></div>
       <p class="kicker">${esc(t('nf.kicker'))}</p>
       <h1 tabindex="-1">${esc(t('nf.title'))}</h1>
-      <p class="nf-msg">${esc(what)} ${esc(t('nf.lead'))}</p>
+      <p class="nf-msg">${esc(what)}</p>
       ${hints}
       <p class="nf-actions"><a class="btn btn-gold" href="#/">${esc(t('nav.home'))}</a><button type="button" class="btn" data-open-search>${esc(t('search.open'))}</button></p>
     </section>`,

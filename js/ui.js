@@ -25,9 +25,10 @@ export function flag(iso, label) {
   return `<span class="fi fi-${esc(iso)} flag" role="img" aria-label="${esc(name)}" title="${esc(name)}"></span>`;
 }
 
+// Long nicknames may break after "_" or ")" (e.g. JML_Pawlo_Kubica) when a narrow table needs it.
 export function driverLink(model, name, { flagOn = true, cls = '' } = {}) {
   const d = model.driverMap.get(name);
-  return `<span class="who ${cls}">${flagOn ? flag(d?.flag, d ? fmt.country(d.flag) || d.country : '') : ''}<a href="${href.driver(name)}">${esc(name)}</a></span>`;
+  return `<span class="who ${cls}">${flagOn ? flag(d?.flag, d ? fmt.country(d.flag) || d.country : '') : ''}<a href="${href.driver(name)}">${esc(name).replace(/([_)])/g, '$1<wbr>')}</a></span>`;
 }
 
 /** Team logo; pass the era name (e.g. "Alfa Romeo") to get that era's logo instead of the current one. */
@@ -135,10 +136,14 @@ let tableSeq = 0;
 /**
  * columns: { label, type: 'num'|'text', html(row,i), value(row,i), sort (default true), cls, rowHeader, sticky, desc (default dir) }
  */
-export function table({ caption, columns, rows, hideCaption = true, cls = '', empty = '', filter = false }) {
+export function table({ caption, columns, rows, hideCaption = true, cls = '', empty = '', filter = false, compact = true, colsToggle = true }) {
   const id = `tbl-${++tableSeq}`;
   if (!rows.length) return `<p class="empty">${esc(empty || t('common.noResults'))}</p>`;
-  const cellCls = (c) => [c.cls, c.type === 'num' ? 'num' : '', c.sticky ? 'stick stick-' + c.sticky : ''].filter(Boolean).join(' ');
+  // Phones show only the key columns (position, name, points and those marked `keep`); the rest ("c-opt")
+  // come back with the "All columns" button, so tables fit the screen instead of scrolling sideways.
+  const optional = (c) => compact && !(c.sticky || c.rowHeader || c.keep || /\bc-pts\b/.test(c.cls || ''));
+  const hidden = columns.filter(optional).length;
+  const cellCls = (c) => [c.cls, c.type === 'num' ? 'num' : '', c.sticky ? 'stick stick-' + c.sticky : '', optional(c) ? 'c-opt' : ''].filter(Boolean).join(' ');
   const head = columns.map((c) => {
     // `headHtml` replaces the plain label in the column head (e.g. flag + track code).
     const inner = c.headHtml || esc(c.label);
@@ -158,7 +163,14 @@ export function table({ caption, columns, rows, hideCaption = true, cls = '', em
       </span>
       <span class="table-filter-count sub" aria-live="polite"></span>
     </div>` : '';
-  return `${box}<div class="table-wrap ${cls}" role="region" aria-labelledby="${id}-cap" tabindex="0">
+  // colsToggle:false keeps the phone view to the key columns with no way to show the rest.
+  const more = hidden && colsToggle ? `<button type="button" class="table-cols" data-table-cols="${id}" aria-pressed="false">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16M9 4v16M15 4v16"/></svg>
+      <span data-more>${esc(t('table.allCols', { n: hidden }))}</span><span data-less hidden>${esc(t('table.fewerCols'))}</span>
+    </button>` : '';
+  // Search box and "All columns" share one row above the table (on wider screens the search box moves to the title row).
+  const tools = box || more ? `<div class="table-tools">${box}${more}</div>` : '';
+  return `${tools}<div class="table-wrap ${cls}" role="region" aria-labelledby="${id}-cap" tabindex="0">
     <table id="${id}">
       <caption id="${id}-cap" class="${hideCaption ? 'vh' : ''}">${esc(caption)}</caption>
       <thead><tr>${head}</tr></thead>
@@ -230,6 +242,14 @@ export function initStickyHeads() {
 }
 
 export function initTableFilters(root) {
+  // A section whose table has no search: the "All columns" switch joins the title row (it only shows on phones),
+  // so no empty gap is left beside it.
+  for (const tools of root.querySelectorAll('.table-tools')) {
+    const head = tools.previousElementSibling;
+    if (tools.querySelector('.table-filter') || !head?.matches('.block-head')) continue;
+    head.append(...tools.children);
+    tools.remove();
+  }
   for (const input of root.querySelectorAll('input[data-filter]')) {
     const tbl = root.querySelector(`#${input.dataset.filter}`);
     if (!tbl) continue;
@@ -238,10 +258,11 @@ export function initTableFilters(root) {
     const keys = rows.map((r) => fold(`${r.textContent} ${[...r.querySelectorAll('[aria-label]')].map((x) => x.getAttribute('aria-label')).join(' ')}`.replace(/\s+/g, ' ')));
     const box = input.closest('.table-filter');
     const count = box.querySelector('.table-filter-count');
-    // The search box is a magnifier at the table's right edge that opens the field on click;
-    // in a titled section it sits on the title row.
+    // The search box is a magnifier at the table's right edge that opens the field on click.
+    // In a titled section it sits on the title row on every screen, and the phone-only "All columns"
+    // switch is dropped there (that table keeps its key columns on phones).
     const head = box.closest('.block')?.querySelector(':scope > .block-head');
-    if (head) head.append(box);
+    if (head) { const tools = box.parentElement; head.append(box); tools.remove(); }
     {
       box.classList.add('is-compact');
       const toggle = box.querySelector('.table-filter-toggle');

@@ -310,6 +310,15 @@ async function boot() {
     const b = e.target.closest('[data-retry]');
     if (b) retryNow(b);
     if (e.target.closest('[data-open-search]')) openSearch();
+    // Phones: show or hide the extra columns of one table.
+    const cols = e.target.closest('[data-table-cols]');
+    if (cols) {
+      const on = cols.getAttribute('aria-pressed') !== 'true';
+      cols.setAttribute('aria-pressed', on);
+      cols.querySelector('[data-more]').hidden = on;
+      cols.querySelector('[data-less]').hidden = !on;
+      document.getElementById(cols.dataset.tableCols)?.closest('.table-wrap').classList.toggle('cols-all', on);
+    }
     if (e.target.closest('[data-back]') && depth > 0) { e.preventDefault(); history.back(); }
     // Calendar race cards: a click anywhere outside a link opens the race (driver/team links keep their own target).
     const card = e.target.closest('[data-card-href]');

@@ -411,6 +411,35 @@ td .pair, th .pair { flex-wrap: nowrap; }
   background: var(--surface); overscroll-behavior-x: contain;
 }
 .tall .table-wrap { max-block-size: min(640px, 75vh); }
+/* Row above a table: search magnifier on the left, "All columns" (phones only) on the right. */
+.table-tools { display: flex; align-items: center; gap: 0.6rem; margin-block-end: 0.6rem; }
+.table-tools:empty { display: none; }
+.table-tools > .table-filter { margin: 0; }
+.block-head:has(> .table-cols) { align-items: center; }
+/* "All columns" switch: only on phones, where tables show their key columns (see table() in ui.js). */
+.table-cols { display: none; }
+@media (width < 760px) {
+  .table-wrap:not(.cols-all) .c-opt, .head-pin:has(+ .table-wrap:not(.cols-all)) .c-opt { display: none; }
+  .table-cols {
+    display: flex; align-items: center; gap: 0.4rem; width: fit-content; margin: 0 0 0 auto; padding: 0.35rem 0.8rem;
+    border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface-2); color: var(--text-2); cursor: pointer;
+    font: 600 0.76rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .table-cols .ico { width: 15px; height: 15px; }
+  /* While the search field is open it gets the whole row. */
+  .table-tools:has(.table-filter.open) .table-cols { display: none; }
+  /* Compact tables: long names (tracks, teams) wrap onto a second line instead of widening the table. */
+  .table-wrap:not(.cols-all) tbody :is(th, td):not(.num) { white-space: normal; }
+  /* A long name without spaces (e.g. a nickname) may break inside the word rather than widen the table.
+     With all columns shown the table scrolls sideways anyway, so names stay on one line there. */
+  .table-wrap:not(.cols-all) tbody :is(th, td):not(.num) a { overflow-wrap: anywhere; }
+  .table-wrap:not(.cols-all) tbody .team { white-space: normal; }
+  /* Compact tables never scroll sideways, so the pinned first column can be narrower. */
+  .table-wrap:not(.cols-all) .stick-1 { width: auto; min-width: 2.75rem; }
+  .table-wrap:not(.cols-all) thead th.num { padding-inline: 0.4rem; }
+  thead th, tbody th, tbody td { padding-inline: 0.5rem; }
+  .table-cols[aria-pressed='true'] { border-color: rgb(242 193 78 / 0.5); color: var(--gold); }
+}
 table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 0.95rem; }
 caption { text-align: start; }
 thead th {
@@ -444,6 +473,10 @@ thead .stick { z-index: 3; background: var(--surface-2); }
      (otherwise the shorter English labels let an extra column into view). */
   thead th.num:not(.c-pos) { min-width: 5.4rem; }
   thead th.num:not(.c-pos):is(:has(> abbr), .c-short) { min-width: 3.4rem; }
+  /* Compact tables (key columns only) share the width freely and let head labels wrap ("Pkt / wyścig"),
+     so they fit the screen; the fixed widths above stay for the full, scrolling view and the results grid. */
+  .table-wrap:not(.cols-all, .matrix > *) thead th.num:not(.c-pos) { min-width: 0; }
+  .table-wrap:not(.cols-all, .matrix > *) thead th { white-space: normal; }
 }
 .c-pos { text-align: center !important; }
 
@@ -466,11 +499,15 @@ a.m:hover { outline: 1px solid var(--gold); color: var(--text); }
 .m-out { background: rgb(255 255 255 / 0.05); color: var(--muted); }
 .m-dnf { background: var(--red-bg); color: #ffb0b0; font-size: 0.72rem; box-shadow: inset 0 0 0 1px rgb(255 107 107 / 0.4); }
 /* Standings: places gained/lost since the previous round, next to the position badge. */
-.pos-cell { display: inline-grid; grid-template-columns: auto 1.7rem; align-items: center; gap: 0.3rem; }
+.pos-cell { display: inline-grid; align-items: center; gap: 0.3rem; }
 .pos-move { text-align: start; }
 .pos-move { font: 700 0.7rem/1 var(--font-display); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
 .pos-move.up { color: var(--green); }
 .pos-move.down { color: var(--red); }
+/* Position + move: an empty slot on the left balances the move on the right, so the badge sits under the column title. */
+.pos-cell { grid-template-columns: 1.7rem auto 1.7rem; }
+.pos-cell::before { content: ''; }
+@media (width < 760px) { .pos-cell { grid-template-columns: 1.3rem auto 1.3rem; gap: 0.2rem; } td:has(> .pos-cell) { padding-inline: 0.3rem; } }
 .m sup { position: absolute; top: -4px; right: -3px; font-size: 0.6rem; line-height: 1; padding: 1px 2px; border-radius: 3px; }
 .m-pp { background: #111; color: var(--gold); border: 1px solid rgb(242 193 78 / 0.6); }
 .m-fl { background: #111; color: #d4b0ff; border: 1px solid rgb(186 120 255 / 0.6); }
@@ -480,6 +517,40 @@ a.m:hover { outline: 1px solid var(--gold); color: var(--text); }
 .legend-note > span:not(.m) { display: inline-flex; align-items: center; gap: 0.35rem; line-height: 1; }
 .legend-note > span:not(.m) sup { vertical-align: 0; line-height: 1.4; }
 .cell-none { color: var(--line-2); }
+/* Standings tables on phones: driver and team names break only between words. */
+@media (width < 760px) {
+  .table-wrap.st-table:not(.cols-all) tbody :is(th, td):not(.num) :is(a, a *), .table-wrap.st-table:not(.cols-all) tbody .team * { overflow-wrap: normal; }
+  .st-table thead th.num { padding-inline: 0.25rem; font-size: 0.7rem; letter-spacing: 0.02em; }
+  .st-table thead th.c-pts { font-size: 0.8rem; }
+  .st-table tbody td.num { padding-inline: 0.25rem; }
+  .st-table .team { gap: 0.3rem; }
+  .st-table .team .tlogo { width: 20px; height: 20px; }
+  .st-table .pos-cell { grid-template-columns: 1.1rem auto 1.1rem; gap: 0.15rem; }
+  .st-table :is(td, th).c-pos { padding-inline: 0.2rem; }
+  .st-table :is(td, th).c-driver { padding-inline: 0.3rem; }
+  /* Drivers' standings: the team shows as its colour stripe and logo only (the name stays for screen readers). */
+  .st-drivers tbody .team-reserve { font-size: 0.72rem; }
+  .st-drivers tbody td:has(> .team) { padding-inline: 0.3rem; }
+  .st-drivers tbody .team .tlogo { width: 26px; height: 26px; }
+  .st-drivers :is(thead th, tbody td):nth-child(3) { text-align: center; }
+  .st-drivers :is(td, th).c-driver { padding-inline: 0.25rem; }
+  .st-drivers tbody .team:has(.tlogo) > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+/* Phones: the matrix scrolls sideways (one cell per round), so names stay on one line and the pinned
+   position + driver columns are kept narrow to leave room for the results. */
+@media (width < 760px) {
+  .matrix .table-wrap:not(.cols-all) tbody :is(th, td):not(.num) { white-space: nowrap; }
+  .matrix .table-wrap:not(.cols-all) tbody :is(th, td):not(.num) a { overflow-wrap: normal; }
+  .matrix .stick-1 { width: 2.6rem; min-width: 2.6rem; padding-inline: 0.3rem; }
+  .matrix .stick-2 { left: 2.6rem; padding-inline: 0.4rem 0.6rem; }
+  .matrix .pos { min-width: 1.8rem; height: 1.45rem; padding-inline: 0.3rem; font-size: 0.85rem; }
+  .matrix .c-round { padding-inline: 0.15rem; }
+  .matrix tbody td.c-round { padding-block: 0.3rem; }
+  .matrix .m { min-width: 1.85rem; height: 1.5rem; font-size: 0.8rem; }
+  .matrix .m-dnf { font-size: 0.66rem; }
+  /* Points are left out on phones to give the rounds more room (they are in the Drivers tab). */
+  .matrix .c-pts { display: none; }
+}
 
 /* ---------- Tabs, toolbars ---------- */
 .tablist { display: flex; gap: 0.25rem; overflow-x: auto; border-bottom: 1px solid var(--line); margin-block: 1.5rem 1.25rem; scrollbar-width: none; }
@@ -492,6 +563,16 @@ a.m:hover { outline: 1px solid var(--gold); color: var(--text); }
 .tablist [role='tab'][aria-selected='true']::after { content: ''; position: absolute; inset: auto 0.6rem -1px; height: 3px; background: var(--gold-grad); transform: skewX(-20deg); }
 .tablist [role='tab']:focus-visible { outline: 2px solid var(--gold); outline-offset: -4px; }
 [role='tabpanel']:focus-visible { outline: none; }
+/* Phones: all tabs visible at once as a 2-column grid of buttons, instead of a row that scrolls sideways. */
+@media (width < 760px) {
+  .tablist { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.45rem; overflow: visible; border-bottom: 0; }
+  .tablist [role='tab'] {
+    padding: 0.6rem 0.5rem; text-align: center; font-size: 0.95rem;
+    border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface);
+  }
+  .tablist [role='tab'][aria-selected='true'] { border-color: rgb(242 193 78 / 0.55); background: var(--gold-soft); }
+  .tablist [role='tab'][aria-selected='true']::after { content: none; }
+}
 
 .season-nav { display: flex; gap: 0.35rem; overflow-x: auto; justify-content: safe center; padding-block: 0.25rem; scrollbar-width: thin; }
 .season-nav a {
@@ -659,6 +740,10 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 }
 /* Phones: race cards centred (map, round, track name and each winner/pole/fastest lap line). */
 @media (width < 760px) {
+  /* Map above the text on every race card (the container query above does not reach the calendar grid). */
+  .race-card, .race-card-big { grid-template-columns: minmax(0, 1fr); }
+  .race-card-map { max-width: 220px; }
+  .race-facts div { grid-template-columns: minmax(0, 1fr); gap: 0.1rem; }
   .race-card { justify-items: center; text-align: center; }
   .race-card-map { justify-self: center; width: 100%; }
   .race-card-body { width: 100%; }
@@ -992,6 +1077,8 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .nf-hint { margin: 1.75rem 0 0; color: var(--muted); font: 600 0.8rem var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; }
 .nf-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; }
 .nf-list li { display: inline-flex; align-items: center; padding: 0.55rem 1rem; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface-2); }
+/* Suggested team names look like the driver and track names next to them (elsewhere teams are muted on purpose). */
+.nf-list .team { color: var(--text); font-weight: 600; }
 .nf-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 2rem 0 0; }
 @media (prefers-reduced-motion: no-preference) {
   .nf-track .trk-line { animation: nf-run 30s linear infinite; }
@@ -1093,7 +1180,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 @media (min-width: 900px) { .tiles-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 /* Track page: every sub-line (driver, team, season list) is centred below the value; 6 tiles = two rows of 3. */
 .tiles-stack .tile dd > * { grid-column: 1 / -1; justify-self: center; max-width: 100%; }
-.tiles-stack .tile-sub { white-space: normal; }
+.tiles-stack .tile-sub { white-space: normal; justify-content: center; }
 @media (min-width: 600px) { .tiles-stack { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 /* Race page with "Kierowca dnia": 4 tiles in one row on wide screens, 2×2 in between. */
 @media (min-width: 600px) and (max-width: 899px) { .tiles-stack.tiles-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -1197,7 +1284,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .block-head > .table-filter.is-compact { margin-block: -8px; }
 /* Without a title row (Drivers ranking) the magnifier gets its own row above the table, at the left edge;
    the field opens to the right and the match count follows it. */
-.table-filter.is-compact:not(.block-head > *) { width: fit-content; margin: 0 auto 0.6rem 0; }
+.table-filter.is-compact:not(.block-head > *) { width: fit-content; margin: 0; }
 .table-filter.is-compact:not(.block-head > *) .table-filter-count { order: 0; }
 .is-compact .table-filter-toggle {
   display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; cursor: pointer;
@@ -1215,6 +1302,14 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 @keyframes filter-open { from { max-width: 36px; } to { max-width: 15rem; } }
 .is-compact .table-filter-field { max-width: 15rem; overflow: hidden; }
 .table-filter-none { margin: 0.75rem 0 0; color: var(--muted); }
+/* Phones: the open search stays on the title row (the title does not move) and skips the match count. */
+@media (width < 760px) {
+  .block-head:has(> .table-filter) { flex-wrap: nowrap; }
+  .block-head:has(> .table-filter) h2 { white-space: nowrap; flex-shrink: 0; }
+  .block-head > .table-filter.is-compact { min-width: 0; }
+  .block-head > .table-filter.is-compact .table-filter-field { min-width: 6rem; }
+  .block-head > .table-filter .table-filter-count { display: none; }
+}
 
 /* Driver preview card on hover (mouse only) */
 .driver-preview {
