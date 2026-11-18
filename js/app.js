@@ -4,7 +4,7 @@ import { readCache, fetchTexts, buildModel } from './data.js';
 import { initTooltip, initTableFilters, initStickyHeads, esc, SOCIAL, socialIcon } from './ui.js';
 import * as V from './views.js';
 import { TRACK_GEO } from './track-geo.js';
-import { initSearch } from './search.js';
+import { initSearch, openSearch } from './search.js';
 import { initDriverPreview } from './preview.js';
 
 const DEFAULT_CFG = { sheetId: '1ZKXUxp4XcILifPl248RttwhjkGJ9x0QCeURABEcNGnI', refreshMinutes: 5, links: {} };
@@ -123,7 +123,8 @@ function resolve() {
     const m = re.exec(p);
     if (m) return fn(...m.slice(1).map((x) => (x == null ? x : decodeURIComponent(x))));
   }
-  return V.notFound(t('state.notFound'));
+  // Unknown address: suggest names close to its last part (e.g. #/kierowca/tazo → Tazo).
+  return V.notFound(t('state.notFound'), model, p.split('/').filter(Boolean).at(-1) || '');
 }
 
 function render({ animate = false, soft = false } = {}) {
@@ -274,6 +275,8 @@ async function boot() {
     main.querySelector('h1')?.focus({ preventScroll: true });
   });
   showSkeleton();
+  // Offline copy and "add to home screen" (see sw.js); a failure here only means no offline mode.
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   await loadConfig();
   buildNav();
   initSearch(header.querySelector('.search-button'), () => model);
@@ -306,6 +309,7 @@ async function boot() {
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-retry]');
     if (b) retryNow(b);
+    if (e.target.closest('[data-open-search]')) openSearch();
     if (e.target.closest('[data-back]') && depth > 0) { e.preventDefault(); history.back(); }
     // Calendar race cards: a click anywhere outside a link opens the race (driver/team links keep their own target).
     const card = e.target.closest('[data-card-href]');

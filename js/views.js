@@ -6,7 +6,7 @@ import { TRACK_GEO } from './track-geo.js';
 import { teammateBattles } from './data.js';
 import {
   esc, href, flag, driverLink, teamBadge, teamLogo, trackLink, trackFlag, trackMap, posBadge, ordinalPos, seasonTag,
-  statTile, section, moreLink, pageHead, hiddenHead, backLink, SOCIAL, socialIcon, table, barChart, sprintBadge,
+  statTile, section, moreLink, pageHead, hiddenHead, backLink, SOCIAL, socialIcon, table, barChart, sprintBadge, fold,
 } from './ui.js';
 
 /* ---------- shared bits ---------- */
@@ -419,7 +419,7 @@ function raceGrid(model, races) {
 
 export function season(model, n, { standings = false, tab = '' } = {}) {
   const s = model.seasons.get(+n);
-  if (!s) return notFound(t('state.notFound'));
+  if (!s) return notFound(t('state.notFound'), model, `S${n}`);
   const leader = s.drivers[0];
   // Tabs; the open one comes from the address (#/standings/constructors), drivers by default.
   const tabList = [
@@ -592,7 +592,7 @@ function trackForm(model, d) {
 
 export function driver(model, name) {
   const d = model.driverMap.get(name);
-  if (!d) return notFound(t('driver.notFound'));
+  if (!d) return notFound(t('driver.notFound'), model, name);
   const seasonsList = [...d.seasons.entries()];
   const bestLabel = d.best ? `${ordinalPos(d.best)} <span class="sub">×${d.bestCount}</span>` : '—';
   // Achievements as chips in the header; only the core counting stats stay as tiles.
@@ -757,7 +757,7 @@ function chip(text, { gold = false, title = '', link = '' } = {}) {
 
 export function team(model, key) {
   const tm = model.teamMap.get(key);
-  if (!tm) return notFound(t('team.notFound'));
+  if (!tm) return notFound(t('team.notFound'), model, key);
   const driverRows = [...tm.drivers.values()].sort((a, b) => b.points - a.points);
   const top = (f) => [...tm.drivers.values()].sort((a, b) => f(b) - f(a))[0];
   const mostRaces = top((x) => x.races), mostPts = top((x) => x.points), mostWins = top((x) => x.wins);
@@ -872,7 +872,7 @@ function recordTile(model, label, rec) {
 
 export function track(model, code) {
   const tr = model.trackMap.get(code);
-  if (!tr) return notFound(t('track.notFound'));
+  if (!tr) return notFound(t('track.notFound'), model, code);
   const geo = TRACK_GEO[code];
   const top = (f) => [...tr.drivers.values()].sort((a, b) => f(b) - f(a) || b.points - a.points)[0];
   const mostWins = top((x) => x.wins), mostPoles = top((x) => x.poles), mostPts = top((x) => x.points);
@@ -935,7 +935,7 @@ export function track(model, code) {
 /* ---------- Race ---------- */
 export function race(model, id) {
   const r = model.races.get(+id);
-  if (!r) return notFound(t('race.notFound'));
+  if (!r) return notFound(t('race.notFound'), model, '');
   const i = model.raceList.indexOf(r);
   const prev = model.raceList[i - 1], next = model.raceList[i + 1];
   const name = model.trackName[r.track] || r.track;
@@ -1038,6 +1038,59 @@ export function hallOfFame(model) {
   return { title: t('hof.title'), html };
 }
 
-export function notFound(msg) {
-  return { title: msg, html: `${pageHead(msg)}<p><a class="btn" href="#/">${t('nav.home')}</a></p>` };
+/* Edit distance between two strings (letters added, removed or changed). */
+function distance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/* Drivers, teams and tracks whose name is closest to what was typed in the address (e.g. a misspelt surname). */
+function closestNames(model, query, limit = 6) {
+  const q = fold(String(query || '').trim());
+  if (q.length < 2) return [];
+  const items = [
+    ...model.drivers.map((d) => ({ name: d.name, link: driverLink(model, d.name) })),
+    ...model.teams.map((tm) => ({ name: tm.info.name, alt: tm.key, link: teamBadge(tm.key, tm.info.name) })),
+    ...model.tracks.map((tr) => ({ name: tr.name, alt: `${tr.code} ${TRACK_GEO[tr.code]?.loc || ''}`, link: `<span class="who">${trackFlag(tr.code)}<a href="${href.track(tr.code)}">${esc(tr.name)}</a></span>` })),
+  ];
+  const scored = items
+    .map((it) => {
+      const words = fold(`${it.name} ${it.alt || ''}`).split(/\s+/).filter(Boolean);
+      const whole = fold(it.name);
+      // Closest of: the whole name, any single word of it; a name containing the query counts as very close.
+      const d = whole.includes(q) || words.some((w) => w.startsWith(q)) ? 0 : Math.min(distance(q, whole), ...words.map((w) => distance(q, w)));
+      return { it, d: d / Math.max(q.length, 1) };
+    })
+    .sort((a, b) => a.d - b.d);
+  // Only names about as close as the best one, and never ones that share less than ~two thirds of the letters.
+  const cut = Math.min(0.34, (scored[0]?.d ?? 1) + 0.2);
+  return scored.filter((x) => x.d <= cut).slice(0, limit).map((x) => x.it);
+}
+
+export function notFound(msg, model = null, query = '') {
+  const close = model ? closestNames(model, query) : [];
+  // A random circuit from the league's history (a wide one, so it frames the number), drawn as a dashed line behind the big 404.
+  const wide = Object.keys(TRACK_GEO).filter((c) => { const [, , w, h] = TRACK_GEO[c].vb.split(' ').map(Number); return w / h >= 1.4; });
+  const codes = wide.length ? wide : Object.keys(TRACK_GEO);
+  const code = codes[Math.floor(Math.random() * codes.length)];
+  const what = query ? `${msg.replace(/\.$/, '')} „${query}”.` : msg;
+  const hints = close.length
+    ? `<p class="nf-hint">${esc(t('state.didYouMean'))}</p><ul class="nf-list">${close.map((x) => `<li>${x.link}</li>`).join('')}</ul>`
+    : '';
+  return {
+    title: msg,
+    html: `<section class="nf">
+      <div class="nf-visual" aria-hidden="true">${trackMap(code, { cls: 'nf-track' })}<span class="nf-code">404</span></div>
+      <p class="kicker">${esc(t('nf.kicker'))}</p>
+      <h1 tabindex="-1">${esc(t('nf.title'))}</h1>
+      <p class="nf-msg">${esc(what)} ${esc(t('nf.lead'))}</p>
+      ${hints}
+      <p class="nf-actions"><a class="btn btn-gold" href="#/">${esc(t('nav.home'))}</a><button type="button" class="btn" data-open-search>${esc(t('search.open'))}</button></p>
+    </section>`,
+  };
 }

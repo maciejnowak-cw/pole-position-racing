@@ -270,14 +270,18 @@ main:focus { outline: none; }
 .flag-xl .flag { width: 3.2rem; height: 2.4rem; border-radius: 4px; }
 .who { display: inline-flex; align-items: center; gap: 0.5rem; min-width: 0; }
 .who a, a.who { font-weight: 600; text-decoration: none; }
-.who a:hover, a.who:hover span { text-decoration: underline; }
+/* Names of drivers, teams, tracks and races look the same on hover everywhere: gold text with a gold underline
+   (logos and flags inside the link stay as they are). */
+:is(.who a, a.who, a.team, .legend-name a, .hof-teams a, .hof-champ a, .race-card h3 a, td a:not([class]), th a:not([class])) { text-decoration: none; }
+:is(.who a, a.who, a.team, .legend-name a, .hof-teams a, .hof-champ a, .race-card h3 a, td a:not([class]), th a:not([class])):hover {
+  color: var(--gold-hi); text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 3px;
+}
 
 .team {
   display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none; white-space: nowrap;
   color: var(--text-2); font-weight: 500;
 }
 .team::before { content: ''; width: 4px; height: 1.05em; margin-inline-start: 3px; background: var(--team, var(--muted)); transform: skewX(-16deg); border-radius: 1px; flex-shrink: 0; }
-a.team:hover { color: var(--text); }
 .team-reserve { color: var(--muted); }
 .team-reserve::before { background: var(--line-2); }
 .tlogo { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }
@@ -361,6 +365,7 @@ td .pair, th .pair { flex-wrap: nowrap; }
   display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 1.6rem;
   font: italic 700 1.05rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none;
   background: var(--surface-2); color: var(--text); clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
+  border: 0; cursor: pointer; /* also used on <button>, which brings its own border */
 }
 .btn { transition: background-color 0.2s, color 0.2s, filter 0.2s; }
 .btn:hover { background: var(--surface-3); color: var(--gold-hi); }
@@ -873,7 +878,6 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .legend-1 .legend-logo .tlogo { width: 3.2rem; height: 3.2rem; }
 .legend-name, .legend-name a { color: var(--text); }
 .legend-name a { text-decoration: none; }
-.legend-name a:hover { text-decoration: underline; }
 .legend-seasons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem; }
 
 /* Other champions and constructors: one row of chips with stars. */
@@ -884,7 +888,6 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 }
 .hof-teams > li { border-inline-start: 3px solid var(--team); }
 .hof-teams a { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600; text-decoration: none; }
-.hof-teams a:hover span { text-decoration: underline; }
 
 /* Season wall: one card per finished season, top edge in the champion's team colour. */
 .hof-wall { --cols: 1; list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
@@ -906,7 +909,6 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .hof-season-n:hover { filter: brightness(1.15); }
 .hof-champ { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; font: italic 800 1.3rem / 1.1 var(--font-display); text-transform: uppercase; max-width: 100%; }
 .hof-champ a { text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hof-champ a:hover { text-decoration: underline; }
 .hof-meta { display: flex; justify-content: center; }
 .hof-cons { display: grid; justify-items: center; gap: 0.3rem; width: 100%; margin-top: 0.6rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
 .hof-cons .kicker { font-size: 0.68rem; }
@@ -971,6 +973,30 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .footer-inner { gap: 1.2rem; padding-block: 2.25rem; }
   .footer-list:not(.footer-social) { gap: 0.5rem 1.2rem; }
 }
+
+/* ---------- Not found ---------- */
+/* Centred "off track" screen: a big 404 over a faint dashed circuit, the message, close names, then the way back. */
+.nf { display: grid; justify-items: center; text-align: center; max-width: 640px; margin: clamp(1rem, 4vw, 2.5rem) auto 0; }
+.nf-visual { position: relative; display: grid; place-items: center; width: min(420px, 100%); margin-block-end: 0.5rem; }
+.nf-visual .nf-track { grid-area: 1 / 1; width: 100%; max-height: 240px; opacity: 0.8; }
+.nf-track .trk-glow, .nf-track .trk-start { display: none; }
+.nf-track .trk-base { stroke: var(--surface-3); }
+.nf-track .trk-line { stroke: var(--gold); stroke-width: 6; stroke-dasharray: 0.012 0.012; opacity: 0.7; }
+.nf-code {
+  grid-area: 1 / 1; font: italic 800 clamp(5.5rem, 22vw, 9rem) / 1 var(--font-display); letter-spacing: 0.02em;
+  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 24px rgb(0 0 0 / 0.7));
+}
+.nf h1 { margin: 0.2rem 0 0; font: italic 800 clamp(2.2rem, 6vw, 3.2rem) / 1.05 var(--font-display); text-transform: uppercase; letter-spacing: 0.01em; }
+.nf-msg { margin: 0.6rem 0 0; color: var(--text-2); font-size: 1.05rem; line-height: 1.5; }
+.nf-hint { margin: 1.75rem 0 0; color: var(--muted); font: 600 0.8rem var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; }
+.nf-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; }
+.nf-list li { display: inline-flex; align-items: center; padding: 0.55rem 1rem; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface-2); }
+.nf-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 2rem 0 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .nf-track .trk-line { animation: nf-run 30s linear infinite; }
+}
+@keyframes nf-run { to { stroke-dashoffset: -1; } }
 
 /* ---------- Loading skeleton ---------- */
 .skel { display: block; border-radius: 6px; background: var(--surface-3); }
@@ -1097,6 +1123,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .search-list [aria-selected='true'] a { background: var(--gold-soft); color: var(--text); box-shadow: inset 3px 0 0 var(--gold); }
 .search-ico { display: inline-flex; width: 28px; justify-content: center; flex-shrink: 0; }
 .search-ico .flag { width: 1.4em; height: 1.05em; }
+.search-season { font: italic 800 0.85rem var(--font-display); color: var(--gold); }
 .search-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .search-kind { color: var(--muted); font: 600 0.72rem var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; }
 .search-empty { padding: 1rem 0.75rem; color: var(--muted); }
