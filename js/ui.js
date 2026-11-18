@@ -10,7 +10,7 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&a
 export const fold = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l');
 
 export const href = {
-  home: () => '#/',
+  home: () => './',
   driver: (n) => `#/driver/${encodeURIComponent(n)}`,
   team: (k) => `#/team/${encodeURIComponent(k)}`,
   track: (c) => `#/track/${encodeURIComponent(c)}`,

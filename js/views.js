@@ -1276,7 +1276,7 @@ export function notFound(msg, model = null, query = '') {
       <h1 tabindex="-1">${esc(t('nf.title'))}</h1>
       <p class="nf-msg">${esc(what)}</p>
       ${hints}
-      <p class="nf-actions"><a class="btn btn-gold" href="#/">${esc(t('nav.home'))}</a><button type="button" class="btn" data-open-search>${esc(t('search.open'))}</button></p>
+      <p class="nf-actions"><a class="btn btn-gold" href="./">${esc(t('nav.home'))}</a><button type="button" class="btn" data-open-search>${esc(t('search.open'))}</button></p>
     </section>`,
   };
 }

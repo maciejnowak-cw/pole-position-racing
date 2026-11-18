@@ -52,10 +52,14 @@ const ROUTES = [
 ];
 
 const path = () => location.hash.replace(/^#\/?/, '').replace(/\/$/, '');
+// The home page has a clean address (…/pole-position-racing/, no "#/"); every other page keeps its #/ address.
+const navHref = (p) => (p ? `#/${p}` : './');
+// An old "#/" or bare "#" address becomes the clean one, without a new history entry.
+const cleanHome = () => { if (location.hash && !path()) history.replaceState(history.state, '', location.pathname + location.search); };
 
 /* ---------- Navigation ---------- */
 function buildNav() {
-  const links = NAV.map(([p, key]) => `<li><a href="#/${p}" data-nav="${p}">${esc(t(key))}</a></li>`);
+  const links = NAV.map(([p, key]) => `<li><a href="${navHref(p)}" data-nav="${p}">${esc(t(key))}</a></li>`);
   if (cfg.links?.rules) links.push(`<li><a href="${esc(cfg.links.rules)}" target="_blank" rel="noopener" class="ext">${esc(t('nav.rules'))}</a></li>`);
   if (cfg.links?.discord) links.push(`<li><a href="${esc(cfg.links.discord)}" target="_blank" rel="noopener" class="ext">${esc(t('nav.discord'))}</a></li>`);
   menu.innerHTML = links.join('');
@@ -88,7 +92,7 @@ function buildDock() {
   const dock = document.querySelector('.dock');
   dock.setAttribute('aria-label', t('nav.primary'));
   // Icons only; the full section name is the link's accessible name and its tooltip.
-  dock.innerHTML = NAV.map(([p, key]) => `<a href="#/${p}" data-nav="${p}" aria-label="${esc(t(key))}" title="${esc(t(key))}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${DOCK_ICONS[p] || ''}</svg></a>`).join('');
+  dock.innerHTML = NAV.map(([p, key]) => `<a href="${navHref(p)}" data-nav="${p}" aria-label="${esc(t(key))}" title="${esc(t(key))}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${DOCK_ICONS[p] || ''}</svg></a>`).join('');
 }
 
 function markCurrent() {
@@ -126,7 +130,7 @@ function buildFooter() {
   if (cfg.links?.rules) social.push(`<li><a href="${esc(cfg.links.rules)}" target="_blank" rel="noopener">${esc(t('nav.rules'))}</a></li>`);
   const quick = NAV.filter(([p]) => p).map(([p, key]) => `<li><a href="#/${p}">${esc(t(key))}</a></li>`).join('');
   // One centred column on phones, one row on desktop: logo, page links, social links.
-  box.innerHTML = `<a class="footer-logo-link" href="#/" aria-label="Pole Position Racing"><img src="assets/logo-transparent.png" alt="" width="900" height="450" class="footer-logo"></a>
+  box.innerHTML = `<a class="footer-logo-link" href="./" aria-label="Pole Position Racing"><img src="assets/logo-transparent.png" alt="" width="900" height="450" class="footer-logo"></a>
     <nav aria-label="${esc(t('footer.quick'))}"><ul class="footer-list">${quick}</ul></nav>
     ${social.length ? `<ul class="footer-list footer-social" aria-label="${esc(t('footer.follow'))}">${social.join('')}</ul>` : ''}`;
 }
@@ -439,7 +443,9 @@ async function boot() {
   // Count in-site steps in history.state so the back arrow on detail pages never leaves the site.
   if (typeof history.state?.depth !== 'number') history.replaceState({ depth: 0 }, '');
   let depth = history.state.depth;
-  addEventListener('hashchange', () => {
+  cleanHome();
+  const onNav = () => {
+    cleanHome();
     const before = depth;
     if (typeof history.state?.depth === 'number') depth = history.state.depth; // back/forward
     else history.replaceState({ depth: ++depth }, '');
@@ -447,6 +453,16 @@ async function boot() {
     document.documentElement.dataset.nav = depth < before ? 'back' : 'forward';
     if (!path().split('/')[0]) V.newFact(); // back on the home page: draw a new fact
     render({ animate: true });
+  };
+  addEventListener('hashchange', onNav);
+  // Links to the home page ("./") stay in the page: a new history entry with no hash, then the usual render.
+  document.addEventListener('click', (e) => {
+    const home = e.target.closest('a[href="./"]');
+    if (!home || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    if (!location.hash) return; // already home
+    history.pushState({ depth: depth + 1 }, '', location.pathname + location.search);
+    onNav();
   });
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-retry]');
