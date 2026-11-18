@@ -745,7 +745,7 @@ export function driver(model, name) {
     d.pointsStreak > 1 ? chip(`${esc(t('common.streakPoints'))}: ${d.pointsStreak}`) : '',
     ...trackForm(model, d),
   ].filter(Boolean).join('');
-  const tiles = `<dl class="tiles tiles-compact">
+  const tiles = `<dl class="tiles tiles-compact tiles-rail">
     ${statTile(t('common.points'), fmt.int(d.points))}
     ${statTile(t('common.races'), fmt.int(d.races))}
     ${statTile(t('common.wins'), fmt.int(d.wins), fmt.pct(d.wins / d.races))}
@@ -961,7 +961,7 @@ export function team(model, key) {
     ['ms.firstDriverTitle', driverTitle, dt?.driver],
     ...[50, 100, 150, 200, 250].filter((n) => raceIds.length >= n).map((n) => [['ms.teamStarts', { n }], tEntries.find((r) => r.race === raceIds[n - 1]), '']),
   ]);
-  const tiles = `<dl class="tiles tiles-compact tiles-5">
+  const tiles = `<dl class="tiles tiles-compact tiles-5 tiles-rail">
     ${statTile(t('common.points'), fmt.int(tm.points))}
     ${statTile(t('common.races'), fmt.int(tm.raceCount))}
     ${statTile(t('common.wins'), fmt.int(tm.wins))}

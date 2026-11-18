@@ -1457,6 +1457,25 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .milestones .who { justify-content: center; max-width: 100%; min-width: 0; font-weight: 600; text-decoration: none; color: var(--text); }
 .milestones .who span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Phones: the driver/team stat boxes and the milestones each become one row that scrolls sideways.
+   The row runs to the screen edges and the cards are sized so the next one always peeks in at the right. */
+@media (max-width: 599px) {
+  .tiles-rail, .milestones {
+    display: grid; grid-auto-flow: column; grid-template-columns: none;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none;
+    scroll-snap-type: x mandatory; scroll-padding-inline: var(--gutter);
+    margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter);
+  }
+  .tiles-rail::-webkit-scrollbar, .milestones::-webkit-scrollbar { display: none; }
+  .tiles-rail > *, .milestones > li { scroll-snap-align: start; }
+  .tiles-rail { display: flex; padding-block: 1px; }
+  /* Boxes keep one height (the tallest, with a name and count); shorter content sits in the middle, not at the top. */
+  .tiles-rail > * { flex: 0 0 calc((100% - 1rem) / 2.4); display: grid; align-content: center; }
+  /* A box with a driver name grows to fit the whole name. */
+  .tiles-rail > :has(.who) { flex: 0 0 auto; min-width: calc((100% - 1rem) / 2.4); max-width: 80%; }
+  .milestones { grid-auto-columns: calc((100% - 0.75rem) / 1.6); padding-block: 6px 1px; }
+}
+
 /* Search box above long tables */
 .table-filter { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-block-end: 0.6rem; }
 .table-filter-field { position: relative; flex: 1 1 14rem; max-width: 22rem; display: flex; align-items: center; }
