@@ -721,6 +721,9 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .race-card-map { display: block; padding: 0.5rem; }
 .race-card h3 { font-size: clamp(1.3rem, 3vw, 1.9rem); font-style: italic; text-transform: uppercase; margin-block: 0.25rem 0.75rem; }
 .race-card h3 a { display: inline-flex; align-items: center; gap: 0.55rem; text-decoration: none; }
+/* The underline goes under the track name only, not under the flag next to it. */
+.race-card h3 a:hover { text-decoration: none; }
+.race-card h3 a:hover > span:not(.flag) { text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 3px; }
 .race-facts { display: grid; gap: 0.4rem; margin: 0; }
 .race-facts div { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.5rem; align-items: center; }
 .race-facts dt { color: var(--muted); font: 600 0.78rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; }

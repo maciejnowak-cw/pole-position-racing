@@ -452,12 +452,12 @@ export function goat(model) {
     <span class="sub">${fmt.int(d.wins)} ${t('common.wins').toLowerCase()} · ${fmt.int(d.titles.length)} ${t('common.titles').toLowerCase()}</span>
   </li>`).join('')}</ol>
   ${table({
-    caption: t('goat.title'), filter: true,
+    caption: t('goat.title'), filter: true, colsToggle: false,
     rows: model.drivers,
     columns: [
       { ...posCol((r) => r.goat), html: medal },
       driverCol(model),
-      numCol(t('common.races'), (r) => r.races),
+      numCol(t('common.races'), (r) => r.races, { keep: true }),
       numCol(t('common.wins'), (r) => r.wins),
       numCol(t('common.podiums'), (r) => r.podiums),
       numCol(t('common.polesShort'), (r) => r.poles, { abbr: t('common.poles') }),
