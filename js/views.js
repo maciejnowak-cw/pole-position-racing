@@ -141,7 +141,16 @@ export function initTabs(root) {
         for (const a of root.querySelectorAll('[data-tab-keep]')) a.href = a.dataset.tabKeep + suffix;
       }
     };
-    box.querySelector('[role=tablist]').addEventListener('click', (e) => { const b = e.target.closest('[role=tab]'); if (b) select(b); });
+    box.querySelector('[role=tablist]').addEventListener('click', (e) => {
+      const b = e.target.closest('[role=tab]');
+      if (!b) return;
+      select(b);
+      // In the sideways-scrolling row on phones, bring a half-hidden tab fully into view.
+      const list = b.parentElement, pad = parseFloat(getComputedStyle(list).paddingLeft) || 0;
+      const l = b.offsetLeft - pad, r = b.offsetLeft + b.offsetWidth + pad - list.clientWidth;
+      if (list.scrollLeft > l) list.scrollTo({ left: l, behavior: 'smooth' });
+      else if (list.scrollLeft < r) list.scrollTo({ left: r, behavior: 'smooth' });
+    });
     box.querySelector('[role=tablist]').addEventListener('keydown', (e) => {
       const i = btns.indexOf(document.activeElement);
       if (i < 0) return;
@@ -516,34 +525,74 @@ export function goat(model) {
 }
 
 /* ---------- Stats ---------- */
-function leaderboard(model, title, rows, value, { fmtv = fmt.int, note = '', limit = 10 } = {}) {
+function leaderboard(model, title, rows, value, { fmtv = fmt.int, note = '', limit = 10, low = false } = {}) {
+  // Each row carries a bar scaled to the leader (for "lower is better" boards, the best value gets the full bar).
+  const list = rows.slice(0, limit), vals = list.map(value);
+  const best = low ? Math.min(...vals) : Math.max(...vals);
+  const share = (v) => (low ? best / v : v / best) || 0;
   return `<section class="board" aria-label="${esc(title)}">
-    <h2>${esc(title)}${note ? ` <span class="sub">(${esc(note)})</span>` : ''}</h2>
-    <ol class="mini">${rows.slice(0, limit).map((d, i) => `<li>${posBadge(i + 1)}<span class="mini-who">${driverLink(model, d.name)}</span><span class="mini-pts">${fmtv(value(d))}</span></li>`).join('')}</ol>
+    <h3>${esc(title)}${note ? ` <span class="sub">${esc(note)}</span>` : ''}</h3>
+    <ol class="bar-board">${list.map((d, i) => `<li class="${i === 0 ? 'is-top' : ''}" style="--w:${Math.max(4, Math.round(share(vals[i]) * 100))}%">
+      <span class="bb-rank">${i + 1}</span><span class="bb-who">${driverLink(model, d.name)}</span><span class="bb-val">${fmtv(vals[i])}</span>
+    </li>`).join('')}</ol>
   </section>`;
+}
+
+// Headline card: the all-time leader in one category, with the next two below.
+function spotlight(model, label, rows, value) {
+  const [a, b, c] = rows;
+  if (!a) return '';
+  return `<article class="spot">
+    <p class="spot-label">${esc(label)}</p>
+    <p class="spot-value">${fmt.int(value(a))}</p>
+    <p class="spot-who">${driverLink(model, a.name)}</p>
+    <p class="spot-next">${[b, c].filter(Boolean).map((x, i) => {
+      const dx = model.driverMap.get(x.name);
+      return `<span><b>${i + 2}.</b> ${flag(dx?.flag, dx ? fmt.country(dx.flag) || dx.country : '')} ${esc(x.name)} <span class="sub">${fmt.int(value(x))}</span></span>`;
+    }).join('')}</p>
+  </article>`;
 }
 
 export function stats(model) {
   const min = 10;
   const qualified = model.drivers.filter((d) => d.races >= min);
   const by = (list, f, asc = false) => [...list].sort((a, b) => (asc ? f(a) - f(b) : f(b) - f(a)) || b.points - a.points).filter((d) => f(d) != null);
-  const boards = [
-    leaderboard(model, t('common.wins'), by(model.drivers, (d) => d.wins), (d) => d.wins),
-    leaderboard(model, t('common.podiums'), by(model.drivers, (d) => d.podiums), (d) => d.podiums),
-    leaderboard(model, t('common.poles'), by(model.drivers, (d) => d.poles), (d) => d.poles),
-    leaderboard(model, t('common.fl'), by(model.drivers, (d) => d.fl), (d) => d.fl),
-    leaderboard(model, t('common.titles'), by(model.drivers.filter((d) => d.titles.length), (d) => d.titles.length), (d) => d.titles.length),
-    leaderboard(model, t('common.mostRaces'), by(model.drivers, (d) => d.races), (d) => d.races),
-    leaderboard(model, t('common.ppr'), by(qualified, (d) => d.ppr), (d) => d.ppr, { fmtv: (v) => fmt.dec(v), note: t('stats.minRaces', { n: min }) }),
-    leaderboard(model, t('common.winPct'), by(qualified, (d) => d.wins / d.races), (d) => d.wins / d.races, { fmtv: fmt.pct, note: t('stats.minRaces', { n: min }) }),
-    leaderboard(model, t('common.podiumPct'), by(qualified, (d) => d.podiums / d.races), (d) => d.podiums / d.races, { fmtv: fmt.pct, note: t('stats.minRaces', { n: min }) }),
-    leaderboard(model, t('common.avgQuali'), by(qualified, (d) => d.avgGrid, true), (d) => d.avgGrid, { fmtv: (v) => fmt.dec(v), note: t('stats.minRaces', { n: min }) }),
-    leaderboard(model, t('common.hatTricks'), by(model.drivers.filter((d) => d.hatTricks), (d) => d.hatTricks), (d) => d.hatTricks, { note: t('common.hatTrickHint') }),
-    leaderboard(model, t('common.streakWins'), by(model.drivers, (d) => d.winStreak), (d) => d.winStreak),
-    leaderboard(model, t('common.streakPodiums'), by(model.drivers, (d) => d.podiumStreak), (d) => d.podiumStreak),
-    leaderboard(model, t('common.streakPoints'), by(model.drivers, (d) => d.pointsStreak), (d) => d.pointsStreak),
-    leaderboard(model, t('common.dnfs'), by(model.drivers, (d) => d.dnfs), (d) => d.dnfs),
-  ].join('');
+  const wins = by(model.drivers, (d) => d.wins), pods = by(model.drivers, (d) => d.podiums), poles = by(model.drivers, (d) => d.poles);
+  const titles = by(model.drivers.filter((d) => d.titles.length), (d) => d.titles.length);
+  const minNote = t('stats.minRaces', { n: min });
+  // Full rows only: 6 boards as 2 × 3, 4 as one row of 4, 3 and 2 in a single row.
+  const group = (...b) => `<div class="boards" style="--cols:${b.length % 3 === 0 ? 3 : Math.min(b.length, 4)}">${b.join('')}</div>`;
+  const rankings = tabs([
+    { label: t('stats.tabResults'), html: group(
+      leaderboard(model, t('common.wins'), wins, (d) => d.wins),
+      leaderboard(model, t('common.podiums'), pods, (d) => d.podiums),
+      leaderboard(model, t('common.poles'), poles, (d) => d.poles),
+      leaderboard(model, t('common.fl'), by(model.drivers, (d) => d.fl), (d) => d.fl),
+      leaderboard(model, t('common.titles'), titles, (d) => d.titles.length),
+      leaderboard(model, t('common.hatTricks'), by(model.drivers.filter((d) => d.hatTricks), (d) => d.hatTricks), (d) => d.hatTricks, { note: t('common.hatTrickHint') }),
+    ) },
+    { label: t('stats.tabRates'), html: group(
+      leaderboard(model, t('common.ppr'), by(qualified, (d) => d.ppr), (d) => d.ppr, { fmtv: (v) => fmt.dec(v), note: minNote }),
+      leaderboard(model, t('common.winPct'), by(qualified, (d) => d.wins / d.races), (d) => d.wins / d.races, { fmtv: fmt.pct, note: minNote }),
+      leaderboard(model, t('common.podiumPct'), by(qualified, (d) => d.podiums / d.races), (d) => d.podiums / d.races, { fmtv: fmt.pct, note: minNote }),
+      leaderboard(model, t('common.avgQuali'), by(qualified, (d) => d.avgGrid, true), (d) => d.avgGrid, { fmtv: (v) => fmt.dec(v), note: minNote, low: true }),
+    ) },
+    { label: t('stats.tabStreaks'), html: group(
+      leaderboard(model, t('common.streakWins'), by(model.drivers, (d) => d.winStreak), (d) => d.winStreak),
+      leaderboard(model, t('common.streakPodiums'), by(model.drivers, (d) => d.podiumStreak), (d) => d.podiumStreak),
+      leaderboard(model, t('common.streakPoints'), by(model.drivers, (d) => d.pointsStreak), (d) => d.pointsStreak),
+    ) },
+    { label: t('stats.tabOther'), html: group(
+      leaderboard(model, t('common.mostRaces'), by(model.drivers, (d) => d.races), (d) => d.races),
+      leaderboard(model, t('common.dnfs'), by(model.drivers, (d) => d.dnfs), (d) => d.dnfs),
+    ) },
+  ]);
+  const spots = `<div class="spots">
+    ${spotlight(model, t('common.titles'), titles, (d) => d.titles.length)}
+    ${spotlight(model, t('common.wins'), wins, (d) => d.wins)}
+    ${spotlight(model, t('common.podiums'), pods, (d) => d.podiums)}
+    ${spotlight(model, t('common.poles'), poles, (d) => d.poles)}
+  </div>`;
 
   // Best seasons: points per race, driver must have done at least half the season.
   const bestSeasons = [];
@@ -580,10 +629,10 @@ export function stats(model) {
     ${closest ? statTile(t('stats.recClosest'), driverLink(model, closest.a.name), `+${fmt.int(closest.gap)} ${t('common.pts')} ${esc(t('stats.over'))} ${driverLink(model, closest.b.name)} ${seasonTag(closest.season, { champion: true, label: t('common.champion') })}`) : ''}
   </dl>`;
   // All-time records that the leaderboards above do not already show.
-  const wins = model.raceList.filter((r) => r.winner?.win && r.winner.driver);
+  const wonRaces = model.raceList.filter((r) => r.winner?.win && r.winner.driver);
   const top = (map) => [...map.entries()].sort((a, b) => b[1] - a[1])[0];
   const trackWins = new Map(), winTracks = new Map(), oneTwos = new Map();
-  for (const r of wins) {
+  for (const r of wonRaces) {
     const k = `${r.winner.driver}|${r.track}`;
     trackWins.set(k, (trackWins.get(k) || 0) + 1);
     if (!winTracks.has(r.winner.driver)) winTracks.set(r.winner.driver, new Set());
@@ -598,7 +647,7 @@ export function stats(model) {
     .sort((a, b) => b.k - a.k || b.n - a.n)[0];
   // Longest run of consecutive race wins by one team (reserve entries break the run).
   let run = { key: null, n: 0 }, best = { key: null, n: 0 };
-  for (const r of wins) {
+  for (const r of wonRaces) {
     const key = r.winner.teamKey !== RESERVE ? r.winner.teamKey : null;
     run = key && key === run.key ? { key, n: run.n + 1, from: run.from, to: r.season } : { key, n: key ? 1 : 0, from: r.season, to: r.season };
     if (run.n > best.n) best = run;
@@ -614,25 +663,27 @@ export function stats(model) {
     ${noWin ? statTile(t('stats.recNoWin'), driverLink(model, noWin.name), esc(t('stats.nStarts', { n: noWin.races }))) : ''}
   </dl>`;
   const maxGrid = Math.max(...Object.keys(model.winsFromGrid).map(Number));
-  const gridItems = Array.from({ length: maxGrid }, (_, i) => ({ label: String(i + 1), value: model.winsFromGrid[i + 1] || 0, tip: `${t('stats.gridN', { n: i + 1 })}: ${model.winsFromGrid[i + 1] || 0} ${t('common.wins').toLowerCase()}` }));
+  const gridItems = Array.from({ length: maxGrid }, (_, i) => ({ label: String(i + 1), value: model.winsFromGrid[i + 1] || 0, tip: `${t('stats.gridN', { n: i + 1 })}: ${fmt.count(model.winsFromGrid[i + 1] || 0, 'win')}` }));
 
   const html = `${hiddenHead(t('stats.title'))}
-  <div class="boards">${boards}</div>
-  ${section(t('stats.seasonRecords'), records, { id: 'st-records' })}
-  ${section(t('stats.allTimeRecords'), allTime, { id: 'st-alltime' })}
+  ${section(t('stats.leaders'), spots, { id: 'st-leaders' })}
+  ${section(t('stats.rankings'), rankings, { id: 'st-rank' })}
+  <div class="grid-2 st-records">
+    ${section(t('stats.seasonRecords'), records, { id: 'st-records' })}
+    ${section(t('stats.allTimeRecords'), allTime, { id: 'st-alltime' })}
+  </div>
   ${section(t('stats.winsFromGrid'), barChart({ items: gridItems, label: t('stats.winsFromGridAria') }), { id: 'st-grid' })}
-  <div class="grid-2">
-    ${section(t('stats.bestSeasons'), table({
-      caption: t('stats.bestSeasons'), rows: bestSeasons.slice(0, 15), colsToggle: false,
+  ${section(t('stats.highlights'), tabs([
+    { label: t('stats.bestSeasonsShort'), html: table({
+      caption: t('stats.bestSeasons'), rows: bestSeasons.slice(0, 10), colsToggle: false,
       columns: [posCol((r) => bestSeasons.indexOf(r) + 1), driverCol(model), { label: t('common.season'), type: 'num', keep: true, value: (r) => r.season, html: (r) => seasonTag(r.season) }, numCol(t('common.races'), (r) => r.races), numCol(t('common.points'), (r) => r.points), numCol(t('common.ppr'), (r) => r.ppr.toFixed(3), { html: (r) => fmt.dec(r.ppr), cls: 'c-pts' })],
-    }), { id: 'st-best' })}
-    ${section(t('stats.lowestGridWins'), table({
+    }) },
+    { label: t('stats.lowestGridWinsShort'), html: table({
       caption: t('stats.lowestGridWins'), rows: furthest, colsToggle: false,
       columns: [{ label: t('common.grid'), type: 'num', cls: 'c-pos', sticky: 1, value: (r) => r.winner.grid, html: (r) => `<span class="pos">${r.winner.grid}</span>` }, driverCol(model, (r) => r.winner.driver), { label: t('common.track'), keep: true, value: (r) => r.track, html: (r) => `<a href="${href.race(r.id)}">${trackFlag(r.track)} ${esc(model.trackName[r.track] || r.track)}</a>` }, { label: t('common.season'), type: 'num', value: (r) => r.season, html: (r) => seasonTag(r.season) }],
-    }), { id: 'st-far' })}
-  </div>
-  ${section(t('stats.biggestGains'), table({
-    caption: t('stats.biggestGains'), rows: gains.slice(0, 15), colsToggle: false,
+    }) },
+    { label: t('stats.biggestGainsShort'), html: table({
+    caption: t('stats.biggestGains'), rows: gains.slice(0, 10), colsToggle: false,
     columns: [
       { label: t('common.gained'), type: 'num', cls: 'c-pos', sticky: 1, value: (r) => r.gain, html: (r) => `<span class="delta up">▲${r.gain}</span>` },
       driverCol(model, (r) => r.driver),
@@ -641,7 +692,8 @@ export function stats(model) {
       { label: t('common.track'), value: (r) => r.raceObj.track, html: (r) => `<a href="${href.race(r.raceObj.id)}">${trackFlag(r.raceObj.track)} ${esc(model.trackName[r.raceObj.track] || r.raceObj.track)}</a>${sprintBadge(r.raceObj)}` },
       { label: t('common.season'), type: 'num', value: (r) => r.raceObj.id, html: (r) => seasonTag(r.raceObj.season) },
     ],
-  }), { id: 'st-gains' })}`;
+  }) },
+  ]), { id: 'st-hl' })}`;
   return { title: t('stats.title'), html };
 }
 

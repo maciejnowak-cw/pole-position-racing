@@ -493,6 +493,8 @@ a.m:hover { outline: 1px solid var(--gold); color: var(--text); }
 .m-dnf { background: var(--red-bg); color: #ffb0b0; font-size: 0.72rem; box-shadow: inset 0 0 0 1px rgb(255 107 107 / 0.4); }
 /* Standings: places gained/lost since the previous round, next to the position badge. */
 .pos-cell { display: inline-grid; align-items: center; gap: 0.3rem; }
+/* As a block in its cell it is centred by the cell itself, level with the driver name (inline, it sat on the text baseline, a few px low). */
+td > .pos-cell { display: grid; width: fit-content; margin-inline: auto; }
 .pos-move { text-align: start; }
 .pos-move { font: 700 0.7rem/1 var(--font-display); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
 .pos-move.up { color: var(--green); }
@@ -556,11 +558,14 @@ a.m:hover { outline: 1px solid var(--gold); color: var(--text); }
 .tablist [role='tab'][aria-selected='true']::after { content: ''; position: absolute; inset: auto 0.6rem -1px; height: 3px; background: var(--gold-grad); transform: skewX(-20deg); }
 .tablist [role='tab']:focus-visible { outline: 2px solid var(--gold); outline-offset: -4px; }
 [role='tabpanel']:focus-visible { outline: none; }
-/* Phones: all tabs visible at once as a 2-column grid of buttons, instead of a row that scrolls sideways. */
+/* Phones: one row of pill buttons that scrolls sideways, running to the screen edges. */
 @media (width < 760px) {
-  .tablist { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.45rem; overflow: visible; border-bottom: 0; }
+  .tablist {
+    gap: 0.45rem; border-bottom: 0; overscroll-behavior-x: contain; scroll-padding-inline: var(--gutter);
+    margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter);
+  }
   .tablist [role='tab'] {
-    padding: 0.6rem 0.5rem; text-align: center; font-size: 0.95rem;
+    flex: none; padding: 0.6rem 1.1rem; text-align: center; font-size: 0.95rem; white-space: nowrap;
     border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface);
   }
   .tablist [role='tab'][aria-selected='true'] { border-color: rgb(242 193 78 / 0.55); background: var(--gold-soft); }
@@ -932,6 +937,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   position: relative; width: min(100%, 34px); height: var(--h); min-height: 2px; background: var(--c);
   border-radius: 4px 4px 0 0; cursor: default;
 }
+.bar-zero { min-height: 0; } /* zero draws no bar at all, so it cannot be mistaken for a 1 */
 .bar:hover, .bar:focus-visible { filter: brightness(1.25); }
 .bar:focus-visible { outline-offset: 1px; }
 .bar-val { position: absolute; bottom: 100%; left: 50%; translate: -50% -4px; font: 700 0.8rem var(--font-display); color: var(--text); white-space: nowrap; }
@@ -960,10 +966,53 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 /* Fastest lap hint takes the purple edge of the F / FL badge. */
 .tooltip[data-tone='fl'] { border-color: rgb(186 120 255 / 0.6); }
 
-/* ---------- Boards (stats) ---------- */
-.boards { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
-.board h2 { font-size: 1.2rem; margin-block-end: 0.6rem; flex-wrap: wrap; }
-.board h2 .sub { font-style: normal; text-transform: none; font-family: var(--font-body); font-weight: 400; font-size: 0.8rem; }
+/* ---------- Stats page ---------- */
+/* All-time leaders: four headline cards. */
+.spots { display: grid; gap: 0.75rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.spot {
+  position: relative; overflow: hidden; display: grid; gap: 0.2rem; align-content: start; justify-items: center; text-align: center; min-width: 0;
+  padding: 1rem 1.1rem 1.05rem; border: 1px solid var(--line); border-radius: var(--radius);
+  background: radial-gradient(120% 90% at 100% 0%, rgb(242 193 78 / 0.1), transparent 60%), linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+.spot::after { content: ''; position: absolute; inset: 0 0 auto; height: 2px; background: var(--gold-grad); }
+.spot-label { margin: 0; font: 700 0.75rem var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.spot-value { margin: 0.1rem 0 0; padding-inline: 0.12em; /* room for the italic overhang, which the gold text fill would clip */ font: italic 800 3rem/0.95 var(--font-display); background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.spot-who { margin: 0.2rem 0 0; font: italic 700 1.2rem var(--font-display); min-width: 0; max-width: 100%; }
+.spot-who .who { justify-content: center; }
+.spot-who .who a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spot-next { margin: 0.45rem 0 0; padding-top: 0.5rem; border-top: 1px solid var(--line); display: grid; justify-items: center; justify-self: stretch; gap: 0.15rem; font-size: 0.85rem; color: var(--text-2); }
+.spot-next b { color: var(--muted); font-weight: 600; }
+.spot-next .flag { width: 1.15em; height: 0.85em; margin-inline: 0.1em 0.05em; }
+@media (width < 900px) { .spots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (width < 420px) { .spot { padding: 0.8rem 0.8rem 0.85rem; } .spot-value { font-size: 2.4rem; } .spot-who { font-size: 1.05rem; } }
+
+/* Rankings: boards of horizontal bars, a few at a time behind category tabs. */
+.boards { display: grid; gap: 1rem; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); margin-top: 1rem; }
+@media (width < 1000px) { .boards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (width < 640px) { .boards { grid-template-columns: minmax(0, 1fr); } .bar-board li:nth-child(n + 6) { display: none; } } /* phones: top 5 per board */
+.board { padding: 0.9rem 0.9rem 0.6rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.board h3 { margin: 0 0 0.6rem; font: italic 700 1.1rem var(--font-display); text-transform: uppercase; letter-spacing: 0.02em; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.5rem; }
+.board h3 .sub { font: 400 0.78rem var(--font-body); text-transform: none; letter-spacing: 0; }
+.bar-board { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.bar-board li {
+  position: relative; display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) auto; align-items: center; gap: 0.5rem;
+  min-height: 2rem; padding: 0 0.55rem; border-radius: var(--radius-sm); isolation: isolate;
+}
+/* The bar sits behind the row, its length relative to the leader. */
+.bar-board li::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); z-index: -1; border-radius: inherit;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.03), rgb(255 255 255 / 0.07));
+}
+.bar-board li.is-top::before { background: linear-gradient(90deg, rgb(242 193 78 / 0.08), rgb(242 193 78 / 0.26)); }
+.bb-rank { font: italic 700 0.95rem var(--font-display); color: var(--muted); text-align: center; }
+.is-top .bb-rank { color: var(--gold); }
+.bb-who { min-width: 0; overflow: hidden; }
+.bb-who .who a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bb-val { font: italic 700 1.05rem var(--font-display); font-variant-numeric: tabular-nums; }
+.is-top .bb-val { color: var(--gold); }
+
+/* Season and all-time records side by side on wide screens. */
+.st-records .tiles-compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 /* ---------- GOAT ---------- */
 .goat { font-size: 1.35rem; line-height: 1; }
@@ -1040,7 +1089,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   border-top: 3px solid var(--team); background: var(--surface);
 }
 .hof-season-n {
-  font: italic 800 2.4rem / 1 var(--font-display); text-decoration: none;
+  font: italic 800 2.4rem / 1 var(--font-display); text-decoration: none; padding-inline: 0.1em; /* italic overhang */
   background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .hof-season-n:hover { filter: brightness(1.15); }

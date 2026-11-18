@@ -313,7 +313,7 @@ export function barChart({ items, label, color = 'var(--series-a)', unit = '' })
       <div class="bars" style="--n:${items.length}">
         <div class="ticks" aria-hidden="true">${grid}</div>
         ${items.map((it) => `<div class="bar-slot">
-          <div class="bar" tabindex="0" style="--h:${(it.value / top) * 100}%;--c:${color}" data-tip="${esc(it.tip || `${it.label}: ${it.value}${unit}`)}" aria-label="${esc(it.tip || `${it.label}: ${it.value}${unit}`)}">
+          <div class="bar${it.value ? '' : ' bar-zero'}" tabindex="0" style="--h:${(it.value / top) * 100}%;--c:${color}" data-tip="${esc(it.tip || `${it.label}: ${it.value}${unit}`)}" aria-label="${esc(it.tip || `${it.label}: ${it.value}${unit}`)}">
             ${it === peak ? `<span class="bar-val">${esc(fmt.int(it.value))}</span>` : ''}
           </div>
           <span class="bar-x">${esc(it.label)}</span>
