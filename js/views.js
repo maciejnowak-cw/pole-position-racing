@@ -102,6 +102,28 @@ function tabs(list, { selected = 0, base = '', home = list[0].slug } = {}) {
   </div>`;
 }
 export function initTabs(root) {
+  for (const pick of root.querySelectorAll('.season-pick:not([data-ready])')) {
+    pick.dataset.ready = '';
+    const btn = pick.querySelector('.ss-cur');
+    const list = pick.querySelector('.season-nav');
+    const set = (open) => {
+      pick.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open);
+      if (open) {
+        const cur = list.querySelector('[aria-current]');
+        if (cur) list.scrollTop = cur.offsetTop - list.clientHeight / 2 + cur.offsetHeight / 2;
+        addEventListener('pointerdown', outside, true);
+        addEventListener('keydown', esc_, true);
+      } else {
+        removeEventListener('pointerdown', outside, true);
+        removeEventListener('keydown', esc_, true);
+      }
+    };
+    // Closes on a tap or click outside the picker, or on Escape.
+    const outside = (e) => { if (!pick.isConnected || !pick.contains(e.target)) set(false); };
+    const esc_ = (e) => { if (e.key === 'Escape') { set(false); btn.focus(); } };
+    btn.addEventListener('click', () => set(!pick.classList.contains('open')));
+  }
   for (const box of root.querySelectorAll('[data-tabs]')) {
     const btns = [...box.querySelector('[role=tablist]').children];
     const select = (b, focus) => {
@@ -433,9 +455,32 @@ export function season(model, n, { standings = false, tab = '' } = {}) {
   const top = s.finished
     ? `<div class="champ-banner"><div><p class="kicker">${t('common.champion')}</p><p class="champ-name">${driverLink(model, s.champion.name)}</p><p class="sub champ-meta">${teamBadge(s.champion.lastTeamKey, s.champion.lastTeam)}</p></div><div><p class="kicker">${t('common.constructorChampion')}</p><p class="champ-name">${teamBadge(s.constructorChampion.key, s.constructorChampion.name)}</p>${lineup(model, s.constructorChampion)}</div></div>`
     : `<div class="champ-banner champ-banner-live"><div><p class="kicker">${t('common.leader')}</p><p class="champ-name">${driverLink(model, leader.name)}</p><p class="sub champ-meta">${teamBadge(leader.lastTeamKey, leader.lastTeam)}</p></div><div><p class="kicker">${t('common.constructorLeader')}</p><p class="champ-name">${s.constructors[0] ? teamBadge(s.constructors[0].key, s.constructors[0].name) : '—'}</p>${lineup(model, s.constructors[0])}</div></div>`;
-  const nav = `<nav class="season-nav" aria-label="${esc(t('common.seasons'))}">${model.seasonNums.map((x) => { const base = x === model.currentSeason ? '#/standings' : href.season(x); return `<a href="${base}${suffix}" data-tab-keep="${base}" ${x === s.n ? 'aria-current="page"' : ''}>S${x}</a>`; }).join('')}</nav>`;
+  const seasonBase = (x) => (x === model.currentSeason ? '#/standings' : href.season(x));
+  // Drop-down list of all seasons, newest first: drivers' champion (or leader) | slanted season badge | constructors' champion (or leader).
+  const nav = `<nav class="season-nav" id="season-nav" aria-label="${esc(t('common.seasons'))}">${[...model.seasonNums].reverse().map((x) => {
+    const base = seasonBase(x), sx = model.seasons.get(x);
+    const done = sx.finished && sx.champion;
+    const who = done ? sx.champion : sx.drivers[0];
+    const team = done ? sx.constructorChampion : sx.constructors[0];
+    const d = who && model.driverMap.get(who.name);
+    return `<a href="${base}${suffix}" data-tab-keep="${base}" ${x === s.n ? 'aria-current="page"' : ''}>
+      <span class="sn-side"><span class="sn-kicker">${esc(done ? t('common.champion') : t('common.leader'))}</span>${who ? `<span class="sn-who">${flag(d?.flag, d ? fmt.country(d.flag) || d.country : '')}<span>${esc(who.name)}</span></span>` : ''}</span>
+      <span class="sn-badge"><span class="sr-only">${esc(t('common.season'))} </span>S${x}</span>
+      <span class="sn-side sn-team"><span class="sn-kicker">${esc(done ? t('common.constructors') : t('common.leader'))}</span>${team ? `<span class="sn-who">${teamLogo(team.key, 'sn-logo', team.name)}<span>${esc(team.name)}</span></span>` : ''}</span>
+    </a>`;
+  }).join('')}</nav>`;
+  // Phones: one row with the previous / next season and the current one in the middle, which opens the full list.
+  const si = model.seasonNums.indexOf(s.n);
+  const stepLink = (x, cls, label, d) => (x == null
+    ? `<span class="ss-arrow ${cls}" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="${d}"/></svg></span>`
+    : `<a class="ss-arrow ${cls}" href="${seasonBase(x)}${suffix}" data-tab-keep="${seasonBase(x)}" aria-label="${esc(`${label}: ${t('common.season')} ${x}`)}"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg></a>`);
+  const step = `<div class="season-step">
+      ${stepLink(model.seasonNums[si - 1], 'ss-prev', t('common.prev'), 'M15 5l-7 7 7 7')}
+      <button type="button" class="ss-cur" aria-expanded="false" aria-controls="season-nav"><span class="ss-label">${esc(t('common.season'))}</span><span class="ss-num">${s.n}</span><svg class="ico ss-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+      ${stepLink(model.seasonNums[si + 1], 'ss-next', t('common.next'), 'M9 5l7 7-7 7')}
+    </div>`;
   const html = `${hiddenHead(standings ? t('standings.title') : t('season.title', { n: s.n }))}
-    ${nav}
+    <div class="season-pick">${step}${nav}</div>
     ${top}
     ${tabs(tabList, { selected: sel, home: 'drivers', base: s.n === model.currentSeason && standings ? '#/standings' : href.season(s.n) })}`;
   return { title: standings ? t('standings.title') : t('season.title', { n: s.n }), html };
@@ -571,6 +616,13 @@ export function stats(model) {
  */
 // Short names for tracks better known by another name than their town.
 const CHIP_TRACK_NAME = { FRA: 'Paul Ricard' };
+// Short, well-known track names for narrow phone tables (the full circuit name stays on wider screens).
+const PHONE_TRACK_NAME = {
+  ABU: 'Yas Marina', AUS: 'Albert Park', AUT: 'Red Bull Ring', AZE: 'Baku', BAH: 'Bahrain', BEL: 'Spa', BRA: 'Interlagos',
+  CAN: 'Montreal', CHI: 'Shanghai', FRA: 'Paul Ricard', GBR: 'Silverstone', HUN: 'Hungaroring', ITA: 'Monza', IMO: 'Imola',
+  JAP: 'Suzuka', MEX: 'Mexico City', MON: 'Monaco', NET: 'Zandvoort', POR: 'Portimão', RUS: 'Sochi', SAU: 'Jeddah',
+  SIN: 'Marina Bay', SPA: 'Barcelona', USA: 'COTA', MIA: 'Miami', LAS: 'Las Vegas', QAT: 'Lusail', MAD: 'Madring',
+};
 
 function trackForm(model, d) {
   const byTrack = new Map();
@@ -697,7 +749,11 @@ export function driver(model, name) {
     caption: `${t('common.history')} — ${d.name}`, rows: historyRows, filter: true,
     columns: [
       { label: t('common.season'), type: 'num', sticky: 1, cls: 'c-pos', value: (r) => r.race, html: (r) => seasonTag(r.season) },
-      { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => `<a href="${href.race(r.race)}" class="who">${trackFlag(r.track)}<span>${esc(model.trackName[r.track] || r.track)}</span></a> <span class="sub">R${model.races.get(r.race).round}</span>${sprintBadge(model.races.get(r.race))}${ppFl(r)}` },
+      { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => {
+        const full = model.trackName[r.track] || r.track, short = PHONE_TRACK_NAME[r.track];
+        const name = short && short !== full ? `<span class="tn-full">${esc(full)}</span><span class="tn-short">${esc(short)}</span>` : `<span>${esc(full)}</span>`;
+        return `<a href="${href.race(r.race)}" class="who">${trackFlag(r.track)}${name}</a> <span class="hist-meta"><span class="sub">R${model.races.get(r.race).round}</span>${sprintBadge(model.races.get(r.race))}${ppFl(r)}</span>`;
+      } },
       { label: t('common.team'), value: (r) => r.team, html: (r) => teamBadge(r.teamKey, r.team) },
       numCol(t('common.grid'), (r) => r.grid ?? '', { desc: false, html: (r) => (r.grid ? `${r.grid}` : '—') }),
       { label: t('common.result'), type: 'num', keep: true, value: (r) => (r.dnf ? 99 : r.pos), html: (r) => posBadge(r.pos, r.dnf) },

@@ -194,7 +194,7 @@ export function initStickyHeads() {
   const headerH = () => header.offsetHeight;
   const setH = () => document.documentElement.style.setProperty('--site-header-h', `${headerH()}px`);
   const toggle = () => {
-    const top = headerH();
+    const top = Math.max(0, header.getBoundingClientRect().bottom); // 0 while the phone header is slid away
     for (const p of pins) {
       if (!p.wrap.isConnected) { pins.delete(p); continue; }
       const head = p.table.tHead.getBoundingClientRect(), box = p.wrap.getBoundingClientRect();
@@ -206,7 +206,8 @@ export function initStickyHeads() {
     el.className = 'head-pin';
     el.setAttribute('aria-hidden', 'true');
     const box = document.createElement('div');
-    box.className = 'head-pin-box';
+    // The copy wears the table's own extra classes (e.g. st-table), so class-scoped header styles match it too.
+    box.className = ['head-pin-box', ...[...wrap.classList].filter((c) => c !== 'table-wrap' && c !== 'cols-all')].join(' ');
     const copy = document.createElement('table');
     box.append(copy); el.append(box); wrap.before(el);
     const fill = () => {
@@ -238,6 +239,7 @@ export function initStickyHeads() {
   setH();
   addEventListener('resize', () => { setH(); toggle(); });
   addEventListener('scroll', toggle, { passive: true });
+  header.addEventListener('transitionend', toggle); // the phone header slid in or out
   new MutationObserver(scan).observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
 }
 

@@ -146,15 +146,6 @@ abbr[title] { text-decoration: none; cursor: help; }
   display: inline-grid; place-items: center; width: 40px; height: 40px; margin-block-end: 0.75rem;
   background: var(--surface-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 999px;
 }
-.to-top {
-  position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 25;
-  display: grid; place-items: center; width: 48px; height: 48px; padding: 0; cursor: pointer;
-  background: var(--surface-2); color: var(--gold); border: 1px solid var(--line-2); border-radius: 999px;
-  box-shadow: 0 8px 20px -8px rgb(0 0 0 / 0.7);
-  opacity: 0; visibility: hidden; translate: 0 8px; transition: opacity 0.2s, translate 0.2s, visibility 0.2s;
-}
-.to-top.on { opacity: 1; visibility: visible; translate: 0 0; }
-.to-top:hover { border-color: var(--gold); color: var(--gold-hi); }
 .back-link:hover { border-color: var(--gold); color: var(--gold-hi); }
 .ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
@@ -414,6 +405,7 @@ td .pair, th .pair { flex-wrap: nowrap; }
 /* Row above a table: search magnifier on the left, "All columns" (phones only) on the right. */
 .table-tools { display: flex; align-items: center; gap: 0.6rem; margin-block-end: 0.6rem; }
 .table-tools:empty { display: none; }
+main > .table-tools { display: none; } /* no table search outside a titled block (the GOAT ranking) */
 .table-tools > .table-filter { margin: 0; }
 .block-head:has(> .table-cols) { align-items: center; }
 /* "All columns" switch: only on phones, where tables show their key columns (see table() in ui.js). */
@@ -574,18 +566,62 @@ a.m:hover { outline: 1px solid var(--gold); color: var(--text); }
   .tablist [role='tab'][aria-selected='true']::after { content: none; }
 }
 
-.season-nav { display: flex; gap: 0.35rem; overflow-x: auto; justify-content: safe center; padding-block: 0.25rem; scrollbar-width: thin; }
+/* Season picker: one row (previous season, current season, next season); the current one opens all seasons as a grid. */
+.season-pick { width: 100%; max-width: 30rem; margin-inline: auto; }
+.season-step { display: grid; grid-template-columns: 3rem 1fr 3rem; gap: 0.4rem; align-items: stretch; }
+.ss-arrow {
+  display: grid; place-items: center; height: 3rem; color: var(--gold); background: var(--surface-2);
+  border: 1px solid var(--line-2); border-radius: var(--radius); -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ss-arrow .ico { width: 22px; height: 22px; }
+span.ss-arrow { color: var(--line-2); background: transparent; border-color: var(--line); }
+a.ss-arrow:hover { border-color: var(--gold); background: var(--surface-3); }
+a.ss-arrow:active { background: var(--surface-3); }
+.ss-cur {
+  display: flex; align-items: center; justify-content: center; gap: 0.55rem; height: 3rem; padding: 0 1rem; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--radius); color: var(--text);
+  -webkit-tap-highlight-color: transparent; transition: background 0.15s, border-color 0.15s;
+}
+.ss-cur:hover { background: var(--surface-3); }
+.ss-label { font: 700 0.75rem var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.ss-num { font: italic 800 1.6rem/1 var(--font-display); color: var(--gold); }
+.ss-chev { width: 18px; height: 18px; color: var(--muted); transition: rotate 0.25s ease; }
+.season-pick.open .ss-cur { border-color: var(--gold); }
+.season-pick.open .ss-chev { rotate: 180deg; color: var(--gold); }
+.season-pick { position: relative; z-index: 20; }
+.season-nav {
+  display: none; position: absolute; inset: calc(100% + 6px) 0 auto; max-height: min(60vh, 27rem); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--radius);
+  box-shadow: 0 22px 44px -14px rgb(0 0 0 / 0.85); scrollbar-width: thin;
+}
+/* Gold hairline along the top, like the header's. */
+.season-nav::before {
+  content: ''; position: sticky; top: 0; display: block; height: 2px; z-index: 1;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+}
+.season-pick.open .season-nav { display: block; animation: ss-open 0.2s ease; }
 .season-nav a {
-  flex-shrink: 0; display: grid; place-items: center; min-width: 2.9rem; height: 2.1rem; text-decoration: none;
-  background: var(--surface-2); clip-path: var(--slant); font: italic 700 0.95rem var(--font-display); color: var(--text-2);
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 0.75rem;
+  padding: 0.6rem 0.8rem; text-decoration: none; color: var(--text);
 }
-.season-nav a:hover { color: var(--text); background: var(--surface-3); }
-.season-nav a[aria-current='page'] { background: var(--gold-grad); color: #141006; }
-/* Phones: wrap the seasons into a grid instead of a sideways-scrolling strip. */
-@media (max-width: 640px) {
-  .season-nav { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.1rem, 1fr)); overflow: visible; }
-  .season-nav a { min-width: 0; }
+.season-nav a + a { border-top: 1px solid var(--line); }
+.season-nav a:hover { background: var(--surface-2); }
+.sn-badge {
+  display: grid; place-items: center; width: 3.1rem; height: 2rem; clip-path: var(--slant);
+  background: var(--surface-3); color: var(--text-2); font: italic 800 1rem var(--font-display);
 }
+.sn-side { display: grid; gap: 0.1rem; min-width: 0; }
+.sn-team { justify-items: end; text-align: end; }
+.sn-kicker { font: 700 0.62rem var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.sn-who { display: flex; align-items: center; gap: 0.45rem; min-width: 0; font: italic 700 0.98rem var(--font-display); letter-spacing: 0.02em; }
+.sn-who > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sn-who .flag { flex-shrink: 0; }
+.season-nav .sn-logo { flex-shrink: 0; width: 20px; height: 20px; }
+.season-nav a[aria-current='page'] { background: linear-gradient(90deg, rgb(242 193 78 / 0.14), transparent 70%); }
+.season-nav a[aria-current='page']::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--gold); }
+.season-nav a[aria-current='page'] .sn-badge { background: var(--gold-grad); color: #141006; }
+@keyframes ss-open { from { opacity: 0; translate: 0 -6px; } }
 
 .toolbar { display: flex; gap: 1rem; flex-wrap: wrap; margin-block-end: 1rem; }
 input[type='search'], select {
@@ -646,6 +682,13 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 @media (width < 760px) {
   .hero { grid-template-columns: 1fr; justify-items: center; text-align: center; padding-block: 1.75rem; }
   .hero-track { display: none; }
+  /* No track map here, so the gold glow moves behind the logo and the chequered strip shrinks to a thin edge. */
+  .hero {
+    background:
+      radial-gradient(70% 45% at 50% 28%, rgb(242 193 78 / 0.1), transparent 75%),
+      linear-gradient(160deg, var(--surface-2), var(--bg-2));
+  }
+  .hero::before { width: 90px; opacity: 0.05; background-size: 16px 16px; }
   .hero h1 { justify-items: center; font-size: clamp(1.7rem, 8vw, 2.4rem); }
   .hero-logo { width: min(180px, 50%); }
   .hero h1 + .hero-cta { margin-top: 1.25rem; }
@@ -848,9 +891,14 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .driver-head .driver-id > .flag-xl { grid-column: 1; grid-row: 2; align-self: center; }
 /* Phones: achievement chips sit to the right of the name block instead of below it. */
 @media (width < 760px) {
-  .driver-head .driver-id { grid-template-columns: auto minmax(0, max-content) minmax(8rem, 1fr); }
+  /* The chip column is often taller than the name block: the spare height goes to the empty first and last rows,
+     so country, name and team stay together, centred beside the chips. */
+  .driver-head .driver-id { grid-template-columns: auto minmax(0, max-content) minmax(8rem, 1fr); grid-template-rows: 1fr auto auto auto 1fr; }
+  .driver-head .driver-id > div > .kicker { grid-row: 2; }
+  .driver-head .driver-id > div > h1, .driver-head .driver-id > .flag-xl { grid-row: 3; }
+  .driver-head .driver-id > div > .lead { grid-row: 4; }
   .driver-head .driver-id > div > .badges {
-    grid-column: 3; grid-row: 1 / span 3; align-self: center; margin: 0;
+    grid-column: 3; grid-row: 1 / -1; align-self: center; margin: 0;
     justify-content: flex-end; align-content: center; gap: 0.35rem;
   }
   .driver-head .badges .chip { font-size: 0.68rem; padding: 0.1rem 0.5rem; white-space: nowrap; }
@@ -1021,6 +1069,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .loader { width: 64px; height: 64px; background: url('../assets/logo-transparent.png') center / contain no-repeat; }
 @media (prefers-reduced-motion: no-preference) { .loader { animation: pulse 1.2s ease-in-out infinite; } }
 
+.tn-short { display: none; }
 .site-footer { position: relative; margin-top: 3rem; border-top: 1px solid var(--line); background: var(--bg-2); }
 /* Gold line along the top edge, the same as under the header. */
 .site-footer::before {
@@ -1147,21 +1196,70 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .skel-pair > :last-child { display: none; }
 }
 
+/* ---------- Dock (phones): section links at the bottom instead of the top menu ---------- */
+.dock { display: none; }
+@media (width < 760px) {
+  .site-nav { display: none; }
+  /* Header: language switch on the left, the league logo in the middle, the magnifier in the top-right corner. */
+  :root .site-header .header-inner { display: grid; grid-template-columns: 1fr auto 1fr; }
+  :root .site-header .site-name { display: none; }
+  :root .site-header .header-tools { display: contents; }
+  :root .site-header .lang { order: 1; justify-self: start; margin: 0; }
+  :root .site-header .site-logo { order: 2; justify-self: center; margin: 0; }
+  :root .site-header .search-button { order: 3; justify-self: end; }
+  body { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
+  .dock {
+    position: fixed; inset: auto 0 0; z-index: 30; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+    padding: 6px max(4px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-right));
+    background: rgb(7 7 8 / 0.9); backdrop-filter: blur(14px) saturate(140%);
+    border-top: 1px solid var(--line);
+    transition: translate 0.25s ease;
+  }
+  .dock-off .dock { translate: 0 100%; }
+  .site-footer { display: none; }
+  /* Driver race history: short track name on one line; round and badges stay together (on the same line when they fit). */
+  .tn-full { display: none; }
+  .tn-short { display: inline !important; white-space: nowrap; }
+  .hist-meta { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+  /* "Sprint" shrinks to an "S" badge here (the word stays in the markup for screen readers and the hover hint). */
+  .hist-meta .badge-sprint { font-size: 0; margin: 0; padding-inline: 0.4rem; }
+  .hist-meta .badge-sprint::before { content: 'S'; font-size: 0.7rem; }
+  .hist-meta .badge { margin: 0; }
+  @media (prefers-reduced-motion: no-preference) { .site-logo.hop img { animation: logo-hop 0.45s cubic-bezier(.3, 1.6, .5, 1); } }
+  main { padding-bottom: 1.25rem; } /* no footer below, and the body already leaves room for the dock */
+  /* The top bar slides away with the dock while scrolling down, and pinned table heads move up into its place. */
+  .site-header { transition: translate 0.25s ease; }
+  .dock-off .site-header { translate: 0 -100%; }
+  .head-pin { transition: top 0.25s ease; }
+  .dock-off .head-pin { top: 0; }
+  .dock::before { content: ''; position: absolute; inset: -1px 0 auto; height: 1px; background: linear-gradient(90deg, transparent, rgb(242 193 78 / 0.55), transparent); }
+  .dock a {
+    display: grid; place-items: center; min-width: 0; height: 46px;
+    color: var(--muted); border-radius: 12px; -webkit-tap-highlight-color: transparent;
+  }
+  .dock svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .dock a[aria-current='page'] { color: var(--gold); background: rgb(242 193 78 / 0.1); }
+  .dock a:active { background: rgb(255 255 255 / 0.06); }
+}
+
 /* ---------- Pull to refresh (touch screens, see initPullToRefresh in app.js) ---------- */
-@media (pointer: coarse) { html, body { overscroll-behavior-y: contain; } }
+/* 'none' (not just 'contain') also stops the page bouncing down with the finger, which in the installed app
+   dragged the whole page, header included, along with the indicator. */
+@media (pointer: coarse) { html, body { overscroll-behavior-y: none; } }
 .ptr {
-  --pull: 0px; --turn: 0deg;
-  position: fixed; z-index: 29; left: 50%; top: calc(var(--header-h) - 44px);
+  --pull: 0px; --turn: 0deg; --p: 0;
+  position: fixed; z-index: 29; left: 50%; top: calc(var(--header-h) + env(safe-area-inset-top) - 44px);
   width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; display: grid; place-items: center;
   background: var(--surface-2); border: 1px solid var(--line-2); box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
-  translate: 0 var(--pull); opacity: 0; pointer-events: none;
-  transition: translate 0.25s ease, opacity 0.2s ease;
+  translate: 0 var(--pull); scale: calc(0.6 + 0.4 * var(--p)); opacity: 0; pointer-events: none;
+  transition: translate 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), scale 0.3s ease, opacity 0.25s ease;
 }
-.ptr.on { opacity: 1; transition: none; }
-.ptr.spin { transition: translate 0.2s ease; }
+.ptr.on { opacity: var(--p); transition: none; }
+.ptr.spin { opacity: 1; transition: translate 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .ptr svg { width: 20px; height: 20px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; rotate: var(--turn); }
 .ptr.ready svg { stroke: var(--gold); }
 .ptr.spin svg { stroke: var(--gold); animation: ptr-spin 0.7s linear infinite; }
+@keyframes logo-hop { 40% { translate: 0 -4px; scale: 1.08; } }
 @keyframes ptr-spin { to { rotate: 360deg; } }
 @media (prefers-reduced-motion: reduce) { .ptr.spin svg { animation-duration: 2s; } }
 
@@ -1169,18 +1267,25 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 /* Going deeper (a link) slides the new page in from the right; going back (arrow, browser back) from the left.
    The header stays put. Other changes (language, menu pages at the same level) only fade. */
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) { animation: 180ms cubic-bezier(.4, 0, 1, 1) both vt-out; }
-  ::view-transition-new(root) { animation: 300ms cubic-bezier(.2, .7, .2, 1) both vt-in; }
+  /* The old page fades quickly and only drifts a little, while the new one glides in on a long, soft ease-out,
+     so the two overlap as a gentle cross-fade instead of a jump. */
+  ::view-transition-old(root) { animation: 200ms cubic-bezier(.4, 0, .6, 1) both vt-out; }
+  ::view-transition-new(root) { animation: 420ms cubic-bezier(.22, 1, .36, 1) 40ms both vt-in; }
   :root[data-nav='back']::view-transition-old(root) { animation-name: vt-out-back; }
   :root[data-nav='back']::view-transition-new(root) { animation-name: vt-in-back; }
+  /* Header and dock stay perfectly still. */
+  ::view-transition-group(site-header), ::view-transition-group(dock),
+  ::view-transition-old(site-header), ::view-transition-new(site-header),
+  ::view-transition-old(dock), ::view-transition-new(dock) { animation: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
-@keyframes vt-out { to { opacity: 0; translate: -24px 0; } }
-@keyframes vt-in { from { opacity: 0; translate: 32px 0; } }
-@keyframes vt-out-back { to { opacity: 0; translate: 24px 0; } }
-@keyframes vt-in-back { from { opacity: 0; translate: -32px 0; } }
+@keyframes vt-out { to { opacity: 0; translate: -10px 0; } }
+@keyframes vt-in { from { opacity: 0; translate: 18px 0; } }
+@keyframes vt-out-back { to { opacity: 0; translate: 10px 0; } }
+@keyframes vt-in-back { from { opacity: 0; translate: -18px 0; } }
+.dock { view-transition-name: dock; }
 .site-header { view-transition-name: site-header; }
 
 @media (forced-colors: active) {
@@ -1197,6 +1302,14 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 /* Tiles holding a driver name (team page "most …"): the name gets the full width, the count sits centred below. */
 .tiles-compact .tile dd:has(.who) > * { grid-column: 1 / -1; justify-self: center; max-width: 100%; }
 .tiles-compact .tile-value .who { justify-content: center; }
+/* Phones: smaller stat boxes. */
+@media (max-width: 599px) {
+  .tiles-compact { gap: 0.5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tiles-compact .tile { padding: 0.5rem 0.6rem; border-radius: var(--radius-sm); }
+  .tiles-compact .tile dt { font-size: 0.68rem; }
+  .tiles-compact .tile dd { margin-top: 0.1rem; }
+  .tiles-compact .tile-value { font-size: 1.35rem; }
+}
 /* Wider than phone: 8 tiles in two full rows of 4. */
 @media (min-width: 600px) {
   .tiles-compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }

@@ -59,15 +59,13 @@ function buildNav() {
   if (cfg.links?.rules) links.push(`<li><a href="${esc(cfg.links.rules)}" target="_blank" rel="noopener" class="ext">${esc(t('nav.rules'))}</a></li>`);
   if (cfg.links?.discord) links.push(`<li><a href="${esc(cfg.links.discord)}" target="_blank" rel="noopener" class="ext">${esc(t('nav.discord'))}</a></li>`);
   menu.innerHTML = links.join('');
+  buildDock();
   header.querySelector('nav').setAttribute('aria-label', t('nav.primary'));
   menuBtn.querySelector('span').textContent = t('nav.menu');
   const sb = header.querySelector('.search-button');
   sb.setAttribute('aria-label', t('search.open'));
   sb.title = `${t('search.open')} (Ctrl+K)`;
   document.querySelector('.skip').textContent = t('nav.skip');
-  const top = document.querySelector('.to-top');
-  top.setAttribute('aria-label', t('common.toTop'));
-  top.title = t('common.toTop');
   const lg = header.querySelector('.lang');
   lg.setAttribute('aria-label', t('nav.lang'));
   for (const b of lg.querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.lang === lang);
@@ -76,10 +74,27 @@ function buildNav() {
   layoutNav(true);
 }
 
+/* Phones: the sections live in a dock of icons at the bottom instead of the top menu. */
+const DOCK_ICONS = {
+  '': '<path d="M4 11.5 12 5l8 6.5"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
+  standings: '<rect x="5" y="6" width="14" height="13.5" rx="2"/><path d="M15 4v3.5M9 4v3.5M5 10.5h14M9 15h1.5M13.5 15h1.5"/>',
+  goat: '<path d="M14 19a6 6 0 0 0-12 0"/><circle cx="8" cy="9" r="4"/><path d="M22 19a6 6 0 0 0-6-6 4 4 0 1 0 0-8"/>',
+  teams: '<path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/>',
+  tracks: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  'hall-of-fame': '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 4M17 6h2.5a2.5 2.5 0 0 1-2.6 4"/>',
+  stats: '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>',
+};
+function buildDock() {
+  const dock = document.querySelector('.dock');
+  dock.setAttribute('aria-label', t('nav.primary'));
+  // Icons only; the full section name is the link's accessible name and its tooltip.
+  dock.innerHTML = NAV.map(([p, key]) => `<a href="#/${p}" data-nav="${p}" aria-label="${esc(t(key))}" title="${esc(t(key))}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${DOCK_ICONS[p] || ''}</svg></a>`).join('');
+}
+
 function markCurrent() {
   const first = path().split('/')[0];
   const sec = SECTION[first] || first;
-  for (const a of menu.querySelectorAll('[data-nav]')) {
+  for (const a of document.querySelectorAll('.site-menu [data-nav], .dock [data-nav]')) {
     if (a.dataset.nav === sec) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }
 }
@@ -140,10 +155,6 @@ function render({ animate = false, soft = false } = {}) {
     view.init?.(main);
     V.initTabs(main);
     initTableFilters(main);
-    // Keep the selected season visible in the horizontally scrolling season strip.
-    const sn = main.querySelector('.season-nav');
-    const cur = sn?.querySelector('[aria-current]');
-    if (cur) sn.scrollLeft = cur.offsetLeft - sn.clientWidth / 2 + cur.offsetWidth / 2;
     document.title = view.title ? `${view.title} · Pole Position Racing` : 'Pole Position Racing';
     markCurrent();
     if (soft) scrollTo(0, y); else scrollTo(0, 0);
@@ -273,6 +284,26 @@ function warmOffline() {
 
 /* Touch screens: pulling the page down while it is at the very top reloads the league data
    (the browser's own pull-to-refresh is switched off in style.css so the two never fire together). */
+// Scrolls to the top on a soft ease-in-out curve; longer pages take a little longer, but never more than 0.7 s.
+let glide = 0;
+function glideToTop() {
+  cancelAnimationFrame(glide);
+  const from = scrollY;
+  if (!from) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { scrollTo(0, 0); return; }
+  const dur = Math.min(700, 300 + from / 8);
+  const t0 = performance.now();
+  const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / dur);
+    scrollTo({ top: from * (1 - ease(k)), behavior: 'instant' });
+    if (k < 1) glide = requestAnimationFrame(step);
+  };
+  glide = requestAnimationFrame(step);
+  // A finger on the screen takes over.
+  addEventListener('touchstart', () => cancelAnimationFrame(glide), { once: true, passive: true });
+}
+
 function initPullToRefresh() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const ptr = document.createElement('div');
@@ -281,24 +312,30 @@ function initPullToRefresh() {
   ptr.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"/></svg>';
   document.body.append(ptr);
   const LIMIT = 110, READY = 70;
-  let startY = null, pull = 0, busy = false;
+  let startY = null, startX = 0, pull = 0, busy = false;
   const show = (px) => {
     ptr.style.setProperty('--pull', `${px}px`);
     ptr.style.setProperty('--turn', `${px * 3}deg`);
+    ptr.style.setProperty('--p', Math.min(1, px / READY).toFixed(3)); // fades and grows in with the pull
     ptr.classList.toggle('ready', px >= READY);
   };
   addEventListener('touchstart', (e) => {
     const blocked = busy || e.touches.length > 1 || document.querySelector(':popover-open, dialog[open]');
     startY = !blocked && scrollY <= 0 ? e.touches[0].clientY : null;
+    startX = e.touches[0].clientX;
   }, { passive: true });
   addEventListener('touchmove', (e) => {
     if (startY === null) return;
     const dy = e.touches[0].clientY - startY;
     if (dy <= 0 || scrollY > 0) { pull = 0; show(0); ptr.classList.remove('on'); return; }
-    pull = Math.min(LIMIT, dy * 0.5);
+    // A sideways swipe (e.g. scrolling a wide table) is not a pull: let it go.
+    if (!pull && Math.abs(e.touches[0].clientX - startX) > dy) { startY = null; return; }
+    // Older iOS ignores overscroll-behavior: keep the page itself still while the indicator is pulled.
+    if (e.cancelable) e.preventDefault();
+    pull = LIMIT * (1 - Math.exp(-dy / 160)); // eases out towards LIMIT, like the system gesture
     ptr.classList.add('on');
     show(pull);
-  }, { passive: true });
+  }, { passive: false });
   addEventListener('touchend', async () => {
     if (startY === null) return;
     startY = null;
@@ -308,6 +345,8 @@ function initPullToRefresh() {
     show(READY);
     // Spin at least briefly, so a fast refresh still reads as "done".
     await Promise.all([refresh(), new Promise((r) => setTimeout(r, 600))]);
+    // Like a fresh visit: the home page draws a new fact even when the data has not changed.
+    if (model && !path().split('/')[0]) { V.newFact(); render({ soft: true }); }
     ptr.classList.remove('spin', 'on');
     show(0);
     pull = 0;
@@ -327,19 +366,28 @@ async function boot() {
   document.documentElement.lang = lang;
   initTooltip();
   initStickyHeads();
-  // "Back to top" button: shows after scrolling about two screens down a long page.
-  const toTop = document.querySelector('.to-top');
-  const syncTop = () => {
-    const on = scrollY > innerHeight * 1.5;
-    toTop.classList.toggle('on', on);
-    toTop.toggleAttribute('aria-hidden', !on);
-    toTop.tabIndex = on ? 0 : -1;
-  };
-  addEventListener('scroll', syncTop, { passive: true });
-  toTop.addEventListener('click', () => {
-    scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  // Phones: the dock slides away while scrolling down and comes back on any scroll up (or near the top).
+  let lastY = scrollY;
+  addEventListener('scroll', () => {
+    const y = scrollY, dy = y - lastY;
+    if (Math.abs(dy) < 6) return;
+    // At the very bottom the dock comes back, filling the room the page leaves for it.
+    const atEnd = y + innerHeight >= document.documentElement.scrollHeight - 4;
+    document.body.classList.toggle('dock-off', dy > 0 && y > 80 && !atEnd);
+    lastY = y;
+  }, { passive: true });
+  // Phones: the logo in the middle of the top bar takes you to the top of the current page (home is in the dock).
+  const logo = document.querySelector('.site-logo');
+  logo.addEventListener('click', (e) => {
+    if (!matchMedia('(width < 760px)').matches) return;
+    e.preventDefault();
+    logo.classList.remove('hop');
+    void logo.offsetWidth; // restart the little bounce on repeated taps
+    logo.classList.add('hop');
+    glideToTop();
     main.querySelector('h1')?.focus({ preventScroll: true });
   });
+  logo.addEventListener('animationend', () => logo.classList.remove('hop'));
   showSkeleton();
   // Offline copy and "add to home screen" (see sw.js); a failure here only means no offline mode.
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
