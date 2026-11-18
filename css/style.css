@@ -1147,16 +1147,40 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .skel-pair > :last-child { display: none; }
 }
 
+/* ---------- Pull to refresh (touch screens, see initPullToRefresh in app.js) ---------- */
+@media (pointer: coarse) { html, body { overscroll-behavior-y: contain; } }
+.ptr {
+  --pull: 0px; --turn: 0deg;
+  position: fixed; z-index: 29; left: 50%; top: calc(var(--header-h) - 44px);
+  width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--line-2); box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
+  translate: 0 var(--pull); opacity: 0; pointer-events: none;
+  transition: translate 0.25s ease, opacity 0.2s ease;
+}
+.ptr.on { opacity: 1; transition: none; }
+.ptr.spin { transition: translate 0.2s ease; }
+.ptr svg { width: 20px; height: 20px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; rotate: var(--turn); }
+.ptr.ready svg { stroke: var(--gold); }
+.ptr.spin svg { stroke: var(--gold); animation: ptr-spin 0.7s linear infinite; }
+@keyframes ptr-spin { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .ptr.spin svg { animation-duration: 2s; } }
+
 /* ---------- View transitions ---------- */
+/* Going deeper (a link) slides the new page in from the right; going back (arrow, browser back) from the left.
+   The header stays put. Other changes (language, menu pages at the same level) only fade. */
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) { animation: 160ms ease both vt-out; }
-  ::view-transition-new(root) { animation: 220ms ease both vt-in; }
+  ::view-transition-old(root) { animation: 180ms cubic-bezier(.4, 0, 1, 1) both vt-out; }
+  ::view-transition-new(root) { animation: 300ms cubic-bezier(.2, .7, .2, 1) both vt-in; }
+  :root[data-nav='back']::view-transition-old(root) { animation-name: vt-out-back; }
+  :root[data-nav='back']::view-transition-new(root) { animation-name: vt-in-back; }
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
-@keyframes vt-out { to { opacity: 0; } }
-@keyframes vt-in { from { opacity: 0; translate: 0 8px; } }
+@keyframes vt-out { to { opacity: 0; translate: -24px 0; } }
+@keyframes vt-in { from { opacity: 0; translate: 32px 0; } }
+@keyframes vt-out-back { to { opacity: 0; translate: 24px 0; } }
+@keyframes vt-in-back { from { opacity: 0; translate: -32px 0; } }
 .site-header { view-transition-name: site-header; }
 
 @media (forced-colors: active) {

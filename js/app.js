@@ -271,6 +271,50 @@ function warmOffline() {
   ('requestIdleCallback' in window ? requestIdleCallback : setTimeout)(run);
 }
 
+/* Touch screens: pulling the page down while it is at the very top reloads the league data
+   (the browser's own pull-to-refresh is switched off in style.css so the two never fire together). */
+function initPullToRefresh() {
+  if (!matchMedia('(pointer: coarse)').matches) return;
+  const ptr = document.createElement('div');
+  ptr.className = 'ptr';
+  ptr.setAttribute('aria-hidden', 'true');
+  ptr.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"/></svg>';
+  document.body.append(ptr);
+  const LIMIT = 110, READY = 70;
+  let startY = null, pull = 0, busy = false;
+  const show = (px) => {
+    ptr.style.setProperty('--pull', `${px}px`);
+    ptr.style.setProperty('--turn', `${px * 3}deg`);
+    ptr.classList.toggle('ready', px >= READY);
+  };
+  addEventListener('touchstart', (e) => {
+    const blocked = busy || e.touches.length > 1 || document.querySelector(':popover-open, dialog[open]');
+    startY = !blocked && scrollY <= 0 ? e.touches[0].clientY : null;
+  }, { passive: true });
+  addEventListener('touchmove', (e) => {
+    if (startY === null) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0 || scrollY > 0) { pull = 0; show(0); ptr.classList.remove('on'); return; }
+    pull = Math.min(LIMIT, dy * 0.5);
+    ptr.classList.add('on');
+    show(pull);
+  }, { passive: true });
+  addEventListener('touchend', async () => {
+    if (startY === null) return;
+    startY = null;
+    if (pull < READY) { pull = 0; ptr.classList.remove('on'); show(0); return; }
+    busy = true;
+    ptr.classList.add('spin');
+    show(READY);
+    // Spin at least briefly, so a fast refresh still reads as "done".
+    await Promise.all([refresh(), new Promise((r) => setTimeout(r, 600))]);
+    ptr.classList.remove('spin', 'on');
+    show(0);
+    pull = 0;
+    busy = false;
+  });
+}
+
 async function loadConfig() {
   try {
     const res = await fetch('config.json', { cache: 'no-store' });
@@ -323,8 +367,11 @@ async function boot() {
   if (typeof history.state?.depth !== 'number') history.replaceState({ depth: 0 }, '');
   let depth = history.state.depth;
   addEventListener('hashchange', () => {
+    const before = depth;
     if (typeof history.state?.depth === 'number') depth = history.state.depth; // back/forward
     else history.replaceState({ depth: ++depth }, '');
+    // Which way the page slides in (see "View transitions" in style.css).
+    document.documentElement.dataset.nav = depth < before ? 'back' : 'forward';
     if (!path().split('/')[0]) V.newFact(); // back on the home page: draw a new fact
     render({ animate: true });
   });
@@ -358,6 +405,7 @@ async function boot() {
   }
   await refresh();
   warmOffline();
+  initPullToRefresh();
   addEventListener('online', () => refresh());
   addEventListener('offline', updateBanner);
 
