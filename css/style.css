@@ -305,6 +305,8 @@ main > .sr-only:first-child + .block { margin-block-start: 0; }
 @media (hover: hover) { :is(.who a, a.who, a.team, .legend-name a, .hof-teams a, .hof-champ a, .race-card h3 a, td a:not([class]), th a:not([class])):hover {
   color: var(--gold-hi); text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 3px;
 } }
+/* Driver and team names: gold on hover but no underline (the preview card pops up as well, preview.js). */
+@media (hover: hover) { :is(a[href^='#/driver/'], a[href^='#/team/'])[href][href]:hover { text-decoration: none; } } /* doubled [href]: outranks the underline rule above */
 
 .team {
   display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none; white-space: nowrap;

@@ -76,8 +76,8 @@ function hide() {
 }
 
 export function initDriverPreview(modelGetter) {
-  // Only for a real mouse; touch screens open the profile on tap as before.
-  if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  // Only for a real mouse (checked on every pointer event below, not once at start: a laptop with a touch screen,
+  // or a window that started in a phone-sized view, still gets the cards); taps open the profile as before.
   getModel = modelGetter;
   card = document.createElement('div');
   card.className = 'driver-preview';

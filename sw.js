@@ -2,7 +2,7 @@
 // Own files: network first (a fresh publish shows up at once), the saved copy when offline.
 // Fonts and flags from CDNs: saved copy first (their addresses never change).
 // League data from Google Sheets is not touched here; the page keeps its own copy of it.
-const VERSION = '202611192218'; // set by scripts/release.py on every publish
+const VERSION = '202611192226'; // set by scripts/release.py on every publish
 const CACHE = `ppr-${VERSION}`;
 const SHELL = [
   './', 'index.html', 'config.json', 'manifest.webmanifest', 'css/style.css',
