@@ -83,7 +83,6 @@ export function openSearch() {
   const model = getModel();
   if (!model) return;
   index = buildIndex(model);
-  dialog.querySelector('.search-hint').textContent = t('search.hint');
   input.placeholder = t('search.placeholder');
   input.setAttribute('aria-label', t('search.label'));
   input.value = '';
@@ -101,8 +100,7 @@ export function initSearch(button, modelGetter) {
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
       <input type="search" role="combobox" aria-expanded="true" aria-controls="search-list" aria-autocomplete="list" autocomplete="off" spellcheck="false">
     </div>
-    <ul id="search-list" class="search-list" role="listbox"></ul>
-    <p class="search-hint sub"></p>`;
+    <ul id="search-list" class="search-list" role="listbox"></ul>`;
   document.body.append(dialog);
   input = dialog.querySelector('input');
   list = dialog.querySelector('ul');

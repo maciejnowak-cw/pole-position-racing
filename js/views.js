@@ -831,10 +831,11 @@ export function driver(model, name) {
   const mates = teammateBattles(model, d.name);
   const wl = (w, l) => `<span class="wl"><span class="${w > l ? 'win' : ''}">${w}</span>–<span class="${l > w ? 'loss' : ''}">${l}</span></span>`;
   const mateTable = table({
-    caption: `${t('common.teammates')} — ${d.name}`, rows: mates,
+    // Phones: no "races together" column (and no switch to show it), so the head-to-heads have room.
+    caption: `${t('common.teammates')} — ${d.name}`, rows: mates, colsToggle: false,
     columns: [
       driverCol(model),
-      numCol(t('common.racesTogether'), (r) => r.races, { keep: true }),
+      numCol(t('common.racesTogether'), (r) => r.races),
       { label: t('common.quali'), type: 'num', desc: true, keep: true, value: (r) => r.qualiW - r.qualiL, html: (r) => wl(r.qualiW, r.qualiL) },
       { label: t('common.race'), type: 'num', desc: true, keep: true, value: (r) => r.raceW - r.raceL, html: (r) => wl(r.raceW, r.raceL) },
     ],
@@ -1108,7 +1109,7 @@ export function track(model, code) {
     chip(`${esc(t('track.firstRace'))}: S${firstSeason}`),
     winners ? chip(`${esc(t('track.winners'))}: ${winners}`) : '',
   ].filter(Boolean).join('');
-  const tiles = `<dl class="tiles tiles-compact tiles-stack">
+  const tiles = `<dl class="tiles tiles-compact tiles-stack tiles-rail">
     ${recordTile(model, t('common.lapRecord'), tr.record?.lap)}
     ${recordTile(model, t('common.qualiRecord'), tr.record?.quali)}
     ${statTile(t('common.lastWinner'), last.winner ? driverLink(model, last.winner.driver) : '—', `${last.winner ? teamBadge(last.winner.teamKey, last.winner.team) : ''}<span class="tag"><span>S${last.season}</span></span>`)}

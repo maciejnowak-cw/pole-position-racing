@@ -315,15 +315,16 @@ function niceScale(max) {
 export function barChart({ items, label, color = 'var(--series-a)', unit = '' }) {
   if (!items.length) return '';
   const { top, ticks } = niceScale(Math.max(...items.map((i) => i.value), 1));
-  const peak = items.reduce((a, b) => (b.value > a.value ? b : a), items[0]);
+  // Every bar shows its value on top (readable on phones, where there is no hover); the highest stands out in gold.
+  const peak = Math.max(...items.map((i) => i.value)); // every bar at the top value is gold (a tie shows both)
   const grid = ticks.map((v) => `<span class="tick" style="--y:${(v / top) * 100}%"><span>${esc(fmt.int(v))}</span></span>`).join('');
   return `<figure class="chart" role="group" aria-label="${esc(label)}">
     <div class="plot">
       <div class="bars" style="--n:${items.length}">
         <div class="ticks" aria-hidden="true">${grid}</div>
         ${items.map((it) => `<div class="bar-slot">
-          <div class="bar${it.value ? '' : ' bar-zero'}" tabindex="0" style="--h:${(it.value / top) * 100}%;--c:${color}" data-tip="${esc(it.tip || `${it.label}: ${it.value}${unit}`)}" aria-label="${esc(it.tip || `${it.label}: ${it.value}${unit}`)}">
-            ${it === peak ? `<span class="bar-val">${esc(fmt.int(it.value))}</span>` : ''}
+          <div class="bar${it.value ? '' : ' bar-zero'}${it.value && it.value === peak ? ' bar-peak' : ''}" tabindex="0" style="--h:${(it.value / top) * 100}%;--c:${color}" data-tip="${esc(it.tip || `${it.label}: ${it.value}${unit}`)}" aria-label="${esc(it.tip || `${it.label}: ${it.value}${unit}`)}">
+            ${it.value ? `<span class="bar-val" aria-hidden="true">${esc(fmt.int(it.value))}</span>` : ''}
           </div>
           <span class="bar-x">${esc(it.label)}</span>
         </div>`).join('')}

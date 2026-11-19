@@ -91,6 +91,56 @@ const DOCK_ICONS = {
 };
 // Sections behind the "more" button (three lines) at the end of the dock.
 const DOCK_MORE = ['hall-of-fame', 'stats'];
+// A row of options you can slide a finger along: the highlight follows the finger and lifting it picks the option
+// under it, like the tab bars of phone apps (the dock, the language switch). A plain tap still works as before.
+// over(el) shows which option is under the finger (null when the slide ends); the pick is a click on that option.
+function slideSelect(box, getItems, over) {
+  let startX = 0, startY = 0, dragging = false, current = null;
+  const under = (x) => {
+    const els = getItems();
+    return els.find((el) => { const r = el.getBoundingClientRect(); return x >= r.left && x <= r.right; })
+      || (x < box.getBoundingClientRect().left + box.offsetWidth / 2 ? els[0] : els.at(-1));
+  };
+  const mark = (el) => { if (el !== current) { current = el; over(el); } };
+  const end = () => { dragging = false; box.classList.remove('dragging'); mark(null); };
+  box.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) return;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; dragging = false;
+  }, { passive: true });
+  box.addEventListener('touchmove', (e) => {
+    const { clientX: x, clientY: y } = e.touches[0];
+    if (!dragging) {
+      if (Math.abs(x - startX) < 10 || Math.abs(x - startX) < Math.abs(y - startY)) return;
+      dragging = true;
+      box.classList.add('dragging');
+    }
+    e.preventDefault();
+    mark(under(x));
+  }, { passive: false });
+  box.addEventListener('touchend', (e) => {
+    if (!dragging) return;
+    e.preventDefault(); // no extra click from the lifted finger: the option is picked here
+    const target = current;
+    end();
+    target?.click();
+  });
+  box.addEventListener('touchcancel', end);
+}
+
+// Dock: the gold pill follows the finger (classes for style.css); sliding onto the open section changes nothing.
+function initDockDrag(dock) {
+  let last = null;
+  slideSelect(dock, () => [...dock.querySelectorAll(':scope > a, :scope > .dock-more-btn')], (el) => {
+    last?.classList.remove('drag-over');
+    last = el;
+    el?.classList.add('drag-over');
+  });
+  dock.addEventListener('click', (e) => { // a slide that ends on the open section: no reload of the same page
+    const a = e.target.closest('a[aria-current="page"]');
+    if (a && !e.isTrusted) e.preventDefault();
+  }, true);
+}
+
 function buildDock() {
   const dock = document.querySelector('.dock');
   dock.setAttribute('aria-label', t('nav.primary'));
@@ -101,6 +151,16 @@ function buildDock() {
   dock.innerHTML = main.map(([p, key]) => `<a href="${navHref(p)}" data-nav="${p}" aria-label="${esc(t(key))}" title="${esc(t(key))}">${icon(p)}</a>`).join('')
     + `<button type="button" class="dock-more-btn" popovertarget="dock-more" aria-label="${esc(t('nav.more'))}" title="${esc(t('nav.more'))}">${icon('more')}</button>
     <div class="dock-more" id="dock-more" popover>${more.map(([p, key]) => `<a href="${navHref(p)}" data-nav="${p}">${icon(p)}<span>${esc(t(key))}</span></a>`).join('')}</div>`;
+  // The tapped icon lights up on the tap itself, before the address changes and the page is drawn.
+  if (!dock.dataset.ready) dock.addEventListener('click', (e) => { // buildDock runs again on a language change
+    const a = e.target.closest('a[data-nav]');
+    if (!a || e.defaultPrevented) return;
+    for (const x of dock.querySelectorAll('[aria-current]')) x.removeAttribute('aria-current');
+    a.setAttribute('aria-current', 'page');
+    dock.querySelector('.dock-more-btn').classList.toggle('is-current', DOCK_MORE.includes(a.dataset.nav));
+  });
+  if (!dock.dataset.ready) initDockDrag(dock);
+  dock.dataset.ready = '';
   const pop = dock.querySelector('.dock-more');
   pop.addEventListener('click', (e) => { if (e.target.closest('a')) pop.hidePopover(); });
   pop.addEventListener('toggle', (e) => dock.querySelector('.dock-more-btn').setAttribute('aria-expanded', e.newState === 'open'));
@@ -181,6 +241,7 @@ function render({ animate = false, soft = false, restore = null } = {}) {
   pending = false;
   const view = resolve();
   const y = scrollY;
+  markCurrent(); // highlight the new section right away, not only once the page transition has swapped the content
   const update = () => {
     main.innerHTML = view.html;
     view.init?.(main);
@@ -411,15 +472,22 @@ async function boot() {
   initStickyHeads();
   // Phones: the dock slides away while scrolling down and comes back on any scroll up (or near the top).
   let lastY = scrollY;
+  const dockEl = document.querySelector('.dock');
   addEventListener('scroll', () => {
     const y = scrollY, dy = y - lastY;
-    if (Math.abs(dy) < 6) return;
-    // At the very bottom the dock comes back, filling the room the page leaves for it.
-    const atEnd = y + innerHeight >= document.documentElement.scrollHeight - 4;
-    document.body.classList.toggle('dock-off', dy > 0 && y > 80 && !atEnd);
-    // The "more" sheet goes away with the dock.
-    if (document.body.classList.contains('dock-off')) document.querySelector('.dock-more:popover-open')?.hidePopover();
-    lastY = y;
+    if (Math.abs(dy) >= 6) {
+      document.body.classList.toggle('dock-off', dy > 0 && y > 80);
+      // The "more" sheet goes away with the dock.
+      if (document.body.classList.contains('dock-off')) document.querySelector('.dock-more:popover-open')?.hidePopover();
+      lastY = y;
+    }
+    // Near the bottom the hidden dock rises with the page, pixel for pixel, into the room the page leaves for it
+    // (no sudden pop-in at the end of a swipe); the top bar stays away.
+    const rest = Math.max(0, document.documentElement.scrollHeight - (y + innerHeight));
+    const room = dockEl.offsetHeight + (parseFloat(getComputedStyle(dockEl).bottom) || 0) + 4; // fully out of sight
+    const follow = document.body.classList.contains('dock-off') && rest < room && matchMedia('(width < 760px)').matches;
+    dockEl.classList.toggle('dock-follow', follow);
+    dockEl.style.translate = follow ? `0 ${Math.round(rest)}px` : '';
   }, { passive: true });
   // Phones: the logo in the middle of the top bar takes you to the top of the current page (home is in the dock).
   const logo = document.querySelector('.site-logo');
@@ -446,6 +514,11 @@ async function boot() {
 
   menu.addEventListener('click', (e) => {
     if (e.target.closest('a') && menu.matches('[popover]:popover-open')) menu.hidePopover();
+  });
+  // The language switch also follows a sliding finger (see slideSelect): the pill moves to the language under it.
+  const langBox = header.querySelector('.lang');
+  slideSelect(langBox, () => [...langBox.querySelectorAll('button[data-lang]')], (el) => {
+    if (el) langBox.dataset.drag = el.dataset.lang; else delete langBox.dataset.drag;
   });
   header.querySelector('.lang').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-lang]');
