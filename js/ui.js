@@ -203,7 +203,11 @@ export function initStickyHeads() {
   const headerH = () => header.offsetHeight;
   const setH = () => document.documentElement.style.setProperty('--site-header-h', `${headerH()}px`);
   const toggle = () => {
-    const top = Math.max(0, header.getBoundingClientRect().bottom); // 0 while the phone header is slid away
+    // Where the pinned head is headed, not where it is mid-slide: the phone header slides away while scrolling down
+    // (body.dock-off, the head moves up to 0) and back while scrolling up – measuring the half-slid header there
+    // left the copy pinned near the table's end, stuck at the bottom of its box.
+    const slid = document.body.classList.contains('dock-off') && matchMedia('(width < 760px)').matches;
+    const top = slid ? 0 : headerH(); // the header is sticky at the very top
     for (const p of pins) {
       if (!p.wrap.isConnected) { pins.delete(p); continue; }
       const head = p.table.tHead.getBoundingClientRect(), box = p.wrap.getBoundingClientRect();
@@ -247,7 +251,13 @@ export function initStickyHeads() {
   };
   setH();
   addEventListener('resize', () => { setH(); toggle(); });
-  addEventListener('scroll', toggle, { passive: true });
+  // After the frame's other scroll handlers, so the header's new slide state (set in app.js) is already known.
+  let queued = false;
+  addEventListener('scroll', () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; toggle(); });
+  }, { passive: true });
   header.addEventListener('transitionend', toggle); // the phone header slid in or out
   new MutationObserver(scan).observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
 }

@@ -94,7 +94,8 @@ const DOCK_MORE = ['hall-of-fame', 'stats'];
 // A row of options you can slide a finger along: the highlight follows the finger and lifting it picks the option
 // under it, like the tab bars of phone apps (the dock, the language switch). A plain tap still works as before.
 // over(el) shows which option is under the finger (null when the slide ends); the pick is a click on that option.
-function slideSelect(box, getItems, over) {
+// move(x), if given, gets the finger's position on every move (null when the slide ends).
+function slideSelect(box, getItems, over, move) {
   let startX = 0, startY = 0, dragging = false, current = null;
   const under = (x) => {
     const els = getItems();
@@ -102,7 +103,7 @@ function slideSelect(box, getItems, over) {
       || (x < box.getBoundingClientRect().left + box.offsetWidth / 2 ? els[0] : els.at(-1));
   };
   const mark = (el) => { if (el !== current) { current = el; over(el); } };
-  const end = () => { dragging = false; box.classList.remove('dragging'); mark(null); };
+  const end = () => { dragging = false; box.classList.remove('dragging'); mark(null); move?.(null); };
   box.addEventListener('touchstart', (e) => {
     if (e.touches.length > 1) return;
     startX = e.touches[0].clientX; startY = e.touches[0].clientY; dragging = false;
@@ -116,6 +117,7 @@ function slideSelect(box, getItems, over) {
     }
     e.preventDefault();
     mark(under(x));
+    move?.(x);
   }, { passive: false });
   box.addEventListener('touchend', (e) => {
     if (!dragging) return;
@@ -127,13 +129,26 @@ function slideSelect(box, getItems, over) {
   box.addEventListener('touchcancel', end);
 }
 
-// Dock: the gold pill follows the finger (classes for style.css); sliding onto the open section changes nothing.
+// Dock: one gold pill glides under the finger, across the gaps between icons too, and the icon under it turns gold
+// (classes for style.css); sliding onto the open section changes nothing.
 function initDockDrag(dock) {
   let last = null;
-  slideSelect(dock, () => [...dock.querySelectorAll(':scope > a, :scope > .dock-more-btn')], (el) => {
+  const items = () => [...dock.querySelectorAll(':scope > a, :scope > .dock-more-btn')];
+  slideSelect(dock, items, (el) => {
     last?.classList.remove('drag-over');
     last = el;
     el?.classList.add('drag-over');
+  }, (x) => {
+    const pill = dock.querySelector('.dock-pill');
+    if (x == null) { pill.classList.remove('on'); return; }
+    // The pill is one icon wide, centred on the finger but kept between the first and last icon.
+    const els = items(), first = els[0].getBoundingClientRect();
+    const base = dock.getBoundingClientRect().left + dock.clientLeft; // the pill's left: 0, inside the border
+    const w = first.width, lo = first.left - base, hi = els.at(-1).getBoundingClientRect().right - base - w;
+    const left = Math.min(hi, Math.max(lo, x - base - w / 2));
+    pill.style.width = `${w}px`;
+    pill.style.translate = `${left}px 0`;
+    pill.classList.add('on');
   });
   dock.addEventListener('click', (e) => { // a slide that ends on the open section: no reload of the same page
     const a = e.target.closest('a[aria-current="page"]');
@@ -150,6 +165,7 @@ function buildDock() {
   const more = NAV.filter(([p]) => DOCK_MORE.includes(p));
   dock.innerHTML = main.map(([p, key]) => `<a href="${navHref(p)}" data-nav="${p}" aria-label="${esc(t(key))}" title="${esc(t(key))}">${icon(p)}</a>`).join('')
     + `<button type="button" class="dock-more-btn" popovertarget="dock-more" aria-label="${esc(t('nav.more'))}" title="${esc(t('nav.more'))}">${icon('more')}</button>
+    <span class="dock-pill" aria-hidden="true"></span>
     <div class="dock-more" id="dock-more" popover>${more.map(([p, key]) => `<a href="${navHref(p)}" data-nav="${p}">${icon(p)}<span>${esc(t(key))}</span></a>`).join('')}</div>`;
   // The tapped icon lights up on the tap itself, before the address changes and the page is drawn.
   if (!dock.dataset.ready) dock.addEventListener('click', (e) => { // buildDock runs again on a language change
@@ -406,21 +422,29 @@ function inScrollBox(el) {
   return false;
 }
 
+// The pull shows on the logo in the top bar: it starts as a dim grey outline and fills with its gold from the
+// bottom up as the finger pulls; full gold means "let go to refresh", and it glows while the data loads.
 function initPullToRefresh() {
   if (!matchMedia('(pointer: coarse)').matches) return;
-  const ptr = document.createElement('div');
-  ptr.className = 'ptr';
-  ptr.setAttribute('aria-hidden', 'true');
-  ptr.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"/></svg>';
-  document.body.append(ptr);
+  const logo = document.querySelector('.site-logo');
+  const img = logo.querySelector('img');
+  const ghost = img.cloneNode();
+  ghost.className = 'ptr-ghost';
+  ghost.setAttribute('aria-hidden', 'true');
+  logo.prepend(ghost);
   const LIMIT = 110, READY = 70;
   let startY = null, startX = 0, pull = 0, busy = false;
   const show = (px) => {
-    ptr.style.setProperty('--pull', `${px}px`);
-    ptr.style.setProperty('--turn', `${px * 3}deg`);
-    ptr.style.setProperty('--p', Math.min(1, px / READY).toFixed(3)); // fades and grows in with the pull
-    ptr.classList.toggle('ready', px >= READY);
+    logo.style.setProperty('--p', Math.min(1, px / READY).toFixed(3));
+    logo.classList.toggle('ptr-ready', px >= READY);
   };
+  const begin = () => {
+    if (logo.classList.contains('ptr-on')) return;
+    // The grey copy sits exactly over the logo picture (the header layout differs between widths).
+    Object.assign(ghost.style, { left: `${img.offsetLeft}px`, top: `${img.offsetTop}px`, width: `${img.offsetWidth}px`, height: `${img.offsetHeight}px` });
+    logo.classList.add('ptr-on');
+  };
+  const stop = () => { pull = 0; show(0); logo.classList.remove('ptr-on', 'ptr-ready'); };
   addEventListener('touchstart', (e) => {
     // Not while a pop-up is open, nor when the finger starts in a box that scrolls on its own (e.g. the season list).
     const blocked = busy || e.touches.length > 1 || document.querySelector(':popover-open, dialog[open], .season-pick.open')
@@ -431,29 +455,29 @@ function initPullToRefresh() {
   addEventListener('touchmove', (e) => {
     if (startY === null) return;
     const dy = e.touches[0].clientY - startY;
-    if (dy <= 0 || scrollY > 0) { pull = 0; show(0); ptr.classList.remove('on'); return; }
+    if (dy <= 0 || scrollY > 0) { stop(); return; }
     // A sideways swipe (e.g. scrolling a wide table) is not a pull: let it go.
     if (!pull && Math.abs(e.touches[0].clientX - startX) > dy) { startY = null; return; }
-    // Older iOS ignores overscroll-behavior: keep the page itself still while the indicator is pulled.
+    // Older iOS ignores overscroll-behavior: keep the page itself still while the logo fills.
     if (e.cancelable) e.preventDefault();
     pull = LIMIT * (1 - Math.exp(-dy / 160)); // eases out towards LIMIT, like the system gesture
-    ptr.classList.add('on');
+    begin();
     show(pull);
   }, { passive: false });
   addEventListener('touchend', async () => {
     if (startY === null) return;
     startY = null;
-    if (pull < READY) { pull = 0; ptr.classList.remove('on'); show(0); return; }
+    if (pull < READY) { stop(); return; }
     busy = true;
-    ptr.classList.add('spin');
     show(READY);
-    // Spin at least briefly, so a fast refresh still reads as "done".
-    await Promise.all([refresh(), new Promise((r) => setTimeout(r, 600))]);
+    logo.classList.add('ptr-busy');
+    // Glow at least briefly, so a fast refresh still reads as "done".
+    await Promise.all([refresh(), new Promise((r) => setTimeout(r, 700))]);
     // Like a fresh visit: the home page draws a new fact even when the data has not changed.
     if (model && !path().split('/')[0]) { V.newFact(); render({ soft: true }); }
-    ptr.classList.remove('spin', 'on');
-    show(0);
-    pull = 0;
+    logo.classList.remove('ptr-busy');
+    stop();
+    logo.classList.add('hop'); // a little bounce: done
     busy = false;
   });
 }

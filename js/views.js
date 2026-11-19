@@ -117,6 +117,16 @@ function scrollHints(root) {
     new ResizeObserver(edges).observe(row);
     edges();
   }
+  // Tables in a .tall box scroll down inside it: hint at the rows still below.
+  for (const box of root.querySelectorAll('.tall .table-wrap')) {
+    if (box.dataset.hints != null) continue;
+    box.dataset.hints = '';
+    const below = () => box.classList.toggle('more-below', box.scrollTop < box.scrollHeight - box.clientHeight - 2);
+    box.addEventListener('scroll', below, { passive: true });
+    new ResizeObserver(below).observe(box);
+    if (box.firstElementChild) new ResizeObserver(below).observe(box.firstElementChild); // rows filtered or added
+    below();
+  }
 }
 
 export function initTabs(root) {
@@ -1032,7 +1042,7 @@ export function team(model, key) {
   }), { id: 't-drivers' })}
   <div class="grid-2">
     ${section(t('common.winsList'), table({
-      caption: `${t('common.winsList')} — ${tm.info.name}`, rows: [...tm.winsList].reverse(),
+      caption: `${t('common.winsList')} — ${tm.info.name}`, rows: [...tm.winsList].reverse(), cls: 'wins-table',
       columns: [
         { label: t('common.season'), type: 'num', sticky: 1, cls: 'c-pos', value: (r) => r.race, html: (r) => seasonTag(r.season) },
         { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => `<a class="who" href="${href.race(r.race)}">${trackFlag(r.track)}${trackNameSpans(model, r.track)}</a>` },
