@@ -119,7 +119,7 @@ export function section(title, body, { id = '', action = '', cls = '' } = {}) {
   </section>`;
 }
 
-export const moreLink = (url, label) => `<a class="more" href="${url}">${esc(label)}<span aria-hidden="true"> →</span></a>`;
+export const moreLink = (url, label) => `<a class="more" href="${url}" title="${esc(label)}">${esc(label)}<span aria-hidden="true"> →</span></a>`;
 
 /** Menu pages show no visible title block; the heading stays for screen readers and focus after navigation. */
 export const hiddenHead = (title) => `<h1 class="sr-only" tabindex="-1">${esc(title)}</h1>`;

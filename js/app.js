@@ -97,10 +97,14 @@ const DOCK_MORE = ['hall-of-fame', 'stats'];
 // move(x), if given, gets the finger's position on every move (null when the slide ends).
 function slideSelect(box, getItems, over, move) {
   let startX = 0, startY = 0, dragging = false, current = null;
+  // The option nearest to the finger (by its middle), so letting go between two picks the closer one.
   const under = (x) => {
-    const els = getItems();
-    return els.find((el) => { const r = el.getBoundingClientRect(); return x >= r.left && x <= r.right; })
-      || (x < box.getBoundingClientRect().left + box.offsetWidth / 2 ? els[0] : els.at(-1));
+    let best = null, dist = Infinity;
+    for (const el of getItems()) {
+      const r = el.getBoundingClientRect(), d = Math.abs(x - (r.left + r.width / 2));
+      if (d < dist) { best = el; dist = d; }
+    }
+    return best;
   };
   const mark = (el) => { if (el !== current) { current = el; over(el); } };
   const end = () => { dragging = false; box.classList.remove('dragging'); mark(null); move?.(null); };
@@ -138,18 +142,8 @@ function initDockDrag(dock) {
     last?.classList.remove('drag-over');
     last = el;
     el?.classList.add('drag-over');
-  }, (x) => {
-    const pill = dock.querySelector('.dock-pill');
-    if (x == null) { pill.classList.remove('on'); return; }
-    // The pill is one icon wide, centred on the finger but kept between the first and last icon.
-    const els = items(), first = els[0].getBoundingClientRect();
-    const base = dock.getBoundingClientRect().left + dock.clientLeft; // the pill's left: 0, inside the border
-    const w = first.width, lo = first.left - base, hi = els.at(-1).getBoundingClientRect().right - base - w;
-    const left = Math.min(hi, Math.max(lo, x - base - w / 2));
-    pill.style.width = `${w}px`;
-    pill.style.translate = `${left}px 0`;
-    pill.classList.add('on');
-  });
+  }, (x) => placeDockPill({ x })); // x null when the slide ends: back to the open section (or on to the picked one)
+  new ResizeObserver(() => placeDockPill({ animate: false })).observe(dock);
   dock.addEventListener('click', (e) => { // a slide that ends on the open section: no reload of the same page
     const a = e.target.closest('a[aria-current="page"]');
     if (a && !e.isTrusted) e.preventDefault();
@@ -174,12 +168,16 @@ function buildDock() {
     for (const x of dock.querySelectorAll('[aria-current]')) x.removeAttribute('aria-current');
     a.setAttribute('aria-current', 'page');
     dock.querySelector('.dock-more-btn').classList.toggle('is-current', DOCK_MORE.includes(a.dataset.nav));
+    placeDockPill(); // the gold pill glides over from the previous icon
   });
   if (!dock.dataset.ready) initDockDrag(dock);
   dock.dataset.ready = '';
   const pop = dock.querySelector('.dock-more');
   pop.addEventListener('click', (e) => { if (e.target.closest('a')) pop.hidePopover(); });
-  pop.addEventListener('toggle', (e) => dock.querySelector('.dock-more-btn').setAttribute('aria-expanded', e.newState === 'open'));
+  pop.addEventListener('toggle', (e) => {
+    dock.querySelector('.dock-more-btn').setAttribute('aria-expanded', e.newState === 'open');
+    placeDockPill();
+  });
 }
 
 function markCurrent() {
@@ -190,6 +188,36 @@ function markCurrent() {
   }
   // The "more" button lights up while one of the sections behind it is open.
   document.querySelector('.dock-more-btn')?.classList.toggle('is-current', DOCK_MORE.includes(sec));
+  placeDockPill();
+}
+
+// The dock's gold pill sits under the open section's icon and glides to the next one when it changes
+// (a tap, a slide, browser back). x: a position to put it at instead (under the finger while sliding).
+function placeDockPill({ animate = true, x = null } = {}) {
+  const dock = document.querySelector('.dock');
+  const pill = dock?.querySelector('.dock-pill');
+  if (!pill || !dock.offsetWidth) return;
+  if (!pill.style.translate) animate = false; // first placement (page load, dock rebuilt): no slide in from the edge
+  const els = [...dock.querySelectorAll(':scope > a, :scope > .dock-more-btn')];
+  const base = dock.getBoundingClientRect().left + dock.clientLeft; // the pill's left: 0, inside the border
+  const first = els[0].getBoundingClientRect(), w = first.width;
+  let left;
+  if (x != null) {
+    // Centred on the finger but kept between the first and last icon.
+    left = Math.min(els.at(-1).getBoundingClientRect().right - base - w, Math.max(first.left - base, x - base - w / 2));
+  } else {
+    // While the "more" sheet is open the pill sits on its button; it goes back when the sheet closes.
+    const cur = dock.querySelector(':scope > .dock-more-btn[aria-expanded="true"]')
+      || dock.querySelector(':scope > a[aria-current="page"], :scope > .dock-more-btn.is-current');
+    pill.classList.toggle('on', !!cur);
+    if (!cur) return;
+    left = cur.getBoundingClientRect().left - base;
+  }
+  if (!animate) pill.classList.add('no-anim');
+  pill.style.width = `${w}px`;
+  pill.style.translate = `${left}px 0`;
+  if (x != null) pill.classList.add('on');
+  if (!animate) { void pill.offsetWidth; pill.classList.remove('no-anim'); }
 }
 
 // Inline navigation when every link fits on one row, popover menu otherwise (no hard-coded breakpoint).
@@ -448,30 +476,14 @@ function inScrollBox(el) {
   return false;
 }
 
-// The pull shows on the logo in the top bar: it starts as a dim grey outline and fills with its gold from the
-// bottom up as the finger pulls; full gold means "let go to refresh", and it glows while the data loads.
+// Nothing moves while pulling; once the pull is long enough and the finger lets go, the logo in the top bar
+// pulses with a gold glow while the data loads, then gives a little bounce.
 function initPullToRefresh() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const logo = document.querySelector('.site-logo');
-  const img = logo.querySelector('img');
-  const ghost = img.cloneNode();
-  ghost.className = 'ptr-ghost';
-  ghost.setAttribute('aria-hidden', 'true');
-  logo.prepend(ghost);
-  // A longer pull than before fills the logo, so the gold rises slowly under the finger.
   const LIMIT = 150, READY = 110;
   let startY = null, startX = 0, pull = 0, busy = false;
-  const show = (px) => {
-    logo.style.setProperty('--p', Math.min(1, px / READY).toFixed(3));
-    logo.classList.toggle('ptr-ready', px >= READY);
-  };
-  const begin = () => {
-    if (logo.classList.contains('ptr-on')) return;
-    // The grey copy sits exactly over the logo picture (the header layout differs between widths).
-    Object.assign(ghost.style, { left: `${img.offsetLeft}px`, top: `${img.offsetTop}px`, width: `${img.offsetWidth}px`, height: `${img.offsetHeight}px` });
-    logo.classList.add('ptr-on');
-  };
-  const stop = () => { pull = 0; show(0); logo.classList.remove('ptr-on', 'ptr-ready'); };
+  const stop = () => { pull = 0; };
   addEventListener('touchstart', (e) => {
     // Not while a pop-up is open, nor when the finger starts in a box that scrolls on its own (e.g. the season list).
     const blocked = busy || e.touches.length > 1 || document.querySelector(':popover-open, dialog[open], .season-pick.open')
@@ -485,18 +497,15 @@ function initPullToRefresh() {
     if (dy <= 0 || scrollY > 0) { stop(); return; }
     // A sideways swipe (e.g. scrolling a wide table) is not a pull: let it go.
     if (!pull && Math.abs(e.touches[0].clientX - startX) > dy) { startY = null; return; }
-    // Older iOS ignores overscroll-behavior: keep the page itself still while the logo fills.
+    // Older iOS ignores overscroll-behavior: keep the page itself still while pulling.
     if (e.cancelable) e.preventDefault();
     pull = LIMIT * (1 - Math.exp(-dy / 200)); // eases out towards LIMIT, like the system gesture
-    begin();
-    show(pull);
   }, { passive: false });
   addEventListener('touchend', async () => {
     if (startY === null) return;
     startY = null;
     if (pull < READY) { stop(); return; }
     busy = true;
-    show(READY);
     logo.classList.add('ptr-busy');
     // Glow only briefly: done as soon as the data is in (a short minimum so it still reads as "refreshed").
     await Promise.all([refresh(), new Promise((r) => setTimeout(r, 250))]);

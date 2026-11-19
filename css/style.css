@@ -252,24 +252,25 @@ main:focus { outline: none; }
 }
 .more { font: 600 0.9rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); text-decoration: none; white-space: nowrap; }
 @media (hover: hover) { .more:hover { color: var(--gold-hi); text-decoration: underline; } }
-/* Phones: a section's "full table" link is just an arrow button on the right of its title
+/* A section's "full table" link is just an arrow button (phones and desktop) on the right of its title
    (the label stays as the link's text for screen readers, at zero size). */
-@media (width < 600px) {
-  .block-head:has(> .more) { flex-wrap: nowrap; align-items: center; }
-  .block-head > .more {
-    flex: none; position: relative; width: 2.25rem; height: 2.25rem; margin-block: -0.25rem;
-    font-size: 0; letter-spacing: 0; border-radius: 999px; -webkit-tap-highlight-color: transparent;
-    background: rgb(22 22 26 / 0.78); border: 1px solid rgb(255 255 255 / 0.1);
-    box-shadow: 0 6px 18px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.06);
-  }
-  .block-head > .more > span { display: none; }
-  .block-head > .more::after {
-    /* Centred over the button on its own, so the zero-size label text can't push it off centre. */
-    content: ''; position: absolute; inset: 0; margin: auto; width: 1rem; height: 1rem; background: currentColor;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
-  }
-  .block-head > .more:active { background: rgb(242 193 78 / 0.14); }
+.block-head:has(> .more) { flex-wrap: nowrap; align-items: center; }
+.block-head > .more {
+  flex: none; position: relative; width: 2.25rem; height: 2.25rem; margin-block: -0.25rem;
+  font-size: 0; letter-spacing: 0; border-radius: 999px; -webkit-tap-highlight-color: transparent;
+  background: rgb(22 22 26 / 0.78); border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
+.block-head > .more > span { display: none; }
+.block-head > .more::after {
+  /* Centred over the button on its own, so the zero-size label text can't push it off centre. */
+  content: ''; position: absolute; inset: 0; margin: auto; width: 1rem; height: 1rem; background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.block-head > .more:active { background: rgb(242 193 78 / 0.14); }
+@media (hover: hover) { .block-head > .more:hover { color: var(--gold-hi); text-decoration: none; border-color: rgb(242 193 78 / 0.5); } }
+/* Home on desktop stacks the link under the title; the arrow sits beside it instead. */
+.grid-home .block-head:has(> .more) { flex-direction: row; align-items: center; justify-content: space-between; }
 .grid-2 { display: grid; gap: 0 clamp(1rem, 3vw, 2rem); grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); }
 .grid-2 > .block { margin-block: clamp(1.25rem, 3vw, 2rem); }
 /* A page whose heading is hidden starts with a section: no extra gap above it, so it lines up with the other pages. */
@@ -807,6 +808,8 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .grid-home .home-pair { grid-area: 2 / 1; }
   .grid-home .o-5 { grid-area: 2 / 2; }
   .home-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2rem; align-items: start; }
+  /* Both standings titles on two lines ("Klasyfikacja / kierowców"), so the pair reads the same side by side. */
+  .home-pair .block-head h2 { width: min-content; }
   .home-pair > .block, .grid-home .o-5 { margin-block: 1.25rem; }
   /* Every home block on desktop: link sits under its title, so all headers line up the same way. */
   .grid-home .block-head { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
@@ -1462,8 +1465,9 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
     color: rgb(245 242 234 / 0.72); border-radius: 999px; -webkit-tap-highlight-color: transparent; cursor: pointer;
   }
   .dock svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .dock > a[aria-current='page'], .dock-more-btn.is-current { color: var(--gold); background: rgb(242 193 78 / 0.14); }
-  .dock-more-btn[aria-expanded='true'] { color: var(--text); background: rgb(255 255 255 / 0.08); }
+  /* The open section's icon is gold; the gold pill under it is one element (.dock-pill) that glides between icons. */
+  .dock > a[aria-current='page'], .dock-more-btn.is-current { color: var(--gold); }
+  .dock-more-btn[aria-expanded='true'] { color: var(--gold); } /* the gold pill moves onto it (app.js) */
   .dock > a:active, .dock-more-btn:active { background: rgb(255 255 255 / 0.08); }
   /* While a finger slides along the dock (see initDockDrag in app.js) the gold pill follows it. */
   .dock.dragging > :is(a, .dock-more-btn) { transition: color 0.12s ease; }
@@ -1476,8 +1480,11 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .dock-pill {
     position: absolute; top: 5px; left: 0; height: 48px; border-radius: 999px; pointer-events: none;
     background: rgb(242 193 78 / 0.14); opacity: 0;
+    transition: translate 0.32s cubic-bezier(0.3, 0.7, 0.2, 1), opacity 0.2s ease;
   }
   .dock-pill.on { opacity: 1; }
+  .dock.dragging .dock-pill, .dock-pill.no-anim { transition: none; } /* under the finger, or just placed */
+  @media (prefers-reduced-motion: reduce) { .dock-pill { transition-duration: 0.01s; } }
   /* Sheet that opens above the "more" button, at the right edge of the dock. */
   .dock-more {
     position: fixed; inset: auto max(12px, env(safe-area-inset-right)) calc(76px + env(safe-area-inset-bottom)) auto; margin: 0;
@@ -1506,24 +1513,11 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 /* 'none' (not just 'contain') also stops the page bouncing down with the finger, which in the installed app
    dragged the whole page, header included, along with the indicator. */
 @media (pointer: coarse) { html, body { overscroll-behavior-y: none; } }
-/* The logo fills with gold from the bottom up as the page is pulled (--p: 0 → 1, set in app.js). Underneath,
-   a grey copy shows the part still to fill. */
-.site-logo { position: relative; }
-.ptr-ghost { display: none; }
-.site-logo.ptr-on .ptr-ghost {
-  display: block; position: absolute; max-width: none; pointer-events: none;
-  filter: grayscale(1) brightness(0.85); opacity: 0.4;
-}
-.site-logo.ptr-on img:not(.ptr-ghost) {
-  position: relative;
-  mask-image: linear-gradient(to top, #000 calc(var(--p, 0) * 100% - 2px), transparent calc(var(--p, 0) * 100% + 2px));
-}
-/* Full: let go to refresh. While the data loads the logo breathes with a soft gold glow. */
-.site-logo.ptr-ready img:not(.ptr-ghost) { mask-image: none; }
-.site-logo.ptr-busy img:not(.ptr-ghost) { animation: ptr-glow 0.35s ease-in-out infinite alternate; }
+/* Pull to refresh: while the data loads the logo pulses with a soft gold glow. */
+.site-logo.ptr-busy img { animation: ptr-glow 0.35s ease-in-out infinite alternate; }
 @keyframes logo-hop { 40% { translate: 0 -4px; scale: 1.08; } }
 @keyframes ptr-glow { to { filter: brightness(1.25) drop-shadow(0 0 8px rgb(242 193 78 / 0.55)); } }
-@media (prefers-reduced-motion: reduce) { .site-logo.ptr-busy img:not(.ptr-ghost) { animation-duration: 2s; } }
+@media (prefers-reduced-motion: reduce) { .site-logo.ptr-busy img { animation-duration: 2s; } }
 
 /* ---------- View transitions ---------- */
 /* Going deeper (a link) slides the new page in from the right; going back (arrow, browser back) from the left.
