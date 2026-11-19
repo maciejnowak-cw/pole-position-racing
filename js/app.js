@@ -138,6 +138,11 @@ function slideSelect(box, getItems, over, move) {
 function initDockDrag(dock) {
   let last = null;
   const items = () => [...dock.querySelectorAll(':scope > a, :scope > .dock-more-btn')];
+  // A slide (e.g. one starting on the "more" button while its sheet is open) closes the sheet first, so the
+  // pill follows the finger and the icon it ends on opens its page instead of the sheet holding on to the pill.
+  dock.addEventListener('touchmove', () => {
+    if (dock.classList.contains('dragging')) dock.querySelector('.dock-more:popover-open')?.hidePopover();
+  }, { passive: true });
   slideSelect(dock, items, (el) => {
     last?.classList.remove('drag-over');
     last = el;
@@ -150,6 +155,7 @@ function initDockDrag(dock) {
   }, true);
 }
 
+let dockDir = null; // 'tab-left' / 'tab-right' while a dock tap's navigation is on its way
 function buildDock() {
   const dock = document.querySelector('.dock');
   dock.setAttribute('aria-label', t('nav.primary'));
@@ -165,8 +171,14 @@ function buildDock() {
   if (!dock.dataset.ready) dock.addEventListener('click', (e) => { // buildDock runs again on a language change
     const a = e.target.closest('a[data-nav]');
     if (!a || e.defaultPrevented) return;
+    // Which way along the dock the tap went: the new page slides in from that side (see onNav, style.css).
+    const slot = (el) => (el?.closest('.dock-more') ? dock.querySelector('.dock-more-btn') : el);
+    const items = [...dock.querySelectorAll(':scope > a, :scope > .dock-more-btn')];
+    const from = items.indexOf(slot(dock.querySelector('a[aria-current="page"]'))), to = items.indexOf(slot(a));
+    dockDir = from < 0 || to === from ? (a.getAttribute('aria-current') ? null : 'tab-right') : to > from ? 'tab-right' : 'tab-left';
     for (const x of dock.querySelectorAll('[aria-current]')) x.removeAttribute('aria-current');
     a.setAttribute('aria-current', 'page');
+    dock.querySelector('.dock-more:popover-open')?.hidePopover(); // a main icon picked while the sheet is open
     dock.querySelector('.dock-more-btn').classList.toggle('is-current', DOCK_MORE.includes(a.dataset.nav));
     placeDockPill(); // the gold pill glides over from the previous icon
   });
@@ -207,7 +219,7 @@ function placeDockPill({ animate = true, x = null } = {}) {
     left = Math.min(els.at(-1).getBoundingClientRect().right - base - w, Math.max(first.left - base, x - base - w / 2));
   } else {
     // While the "more" sheet is open the pill sits on its button; it goes back when the sheet closes.
-    const cur = dock.querySelector(':scope > .dock-more-btn[aria-expanded="true"]')
+    const cur = (dock.querySelector('.dock-more:popover-open') && dock.querySelector(':scope > .dock-more-btn'))
       || dock.querySelector(':scope > a[aria-current="page"], :scope > .dock-more-btn.is-current');
     pill.classList.toggle('on', !!cur);
     if (!cur) return;
@@ -607,7 +619,9 @@ async function boot() {
     if (traversal) ({ depth, key } = history.state);
     else { key = newKey(); history.replaceState({ depth: ++depth, key }, ''); }
     // Which way the page slides in (see "View transitions" in style.css).
-    document.documentElement.dataset.nav = depth < before ? 'back' : 'forward';
+    // Dock taps: sections side by side, so the page moves sideways the same way as the gold pill.
+    document.documentElement.dataset.nav = dockDir && !traversal ? dockDir : depth < before ? 'back' : 'forward';
+    dockDir = null;
     if (!path().split('/')[0]) V.newFact(); // back on the home page: draw a new fact
     // On touch screens a back/forward that is not our own arrow is usually the edge swipe: the browser has already
     // slid the previous page in, so a second slide would make it jump. Show it straight away, where it was left.

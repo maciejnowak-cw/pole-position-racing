@@ -1529,6 +1529,12 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   ::view-transition-new(root) { animation: 420ms cubic-bezier(.22, 1, .36, 1) 40ms both vt-in; }
   :root[data-nav='back']::view-transition-old(root) { animation-name: vt-out-back; }
   :root[data-nav='back']::view-transition-new(root) { animation-name: vt-in-back; }
+  /* Dock taps and slides: the sections sit side by side, so the old page slips out one way and the new one
+     glides in from the other, on the same curve and timing as the gold pill moving along the dock. */
+  :root:is([data-nav='tab-right'], [data-nav='tab-left'])::view-transition-old(root) { animation: 220ms cubic-bezier(.4, 0, 1, 1) both vt-tab-out; }
+  :root:is([data-nav='tab-right'], [data-nav='tab-left'])::view-transition-new(root) { animation: 340ms cubic-bezier(.3, .7, .2, 1) 30ms both vt-tab-in; }
+  :root[data-nav='tab-right'] { --tab-dir: 1; }
+  :root[data-nav='tab-left'] { --tab-dir: -1; }
   /* Header and dock stay perfectly still. */
   ::view-transition-group(site-header), ::view-transition-group(dock),
   ::view-transition-old(site-header), ::view-transition-new(site-header),
@@ -1544,6 +1550,8 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 @keyframes vt-in { from { opacity: 0; translate: 18px 0; } }
 @keyframes vt-out-back { to { opacity: 0; translate: 10px 0; } }
 @keyframes vt-in-back { from { opacity: 0; translate: -18px 0; } }
+@keyframes vt-tab-out { to { opacity: 0; translate: calc(var(--tab-dir, 1) * -24px) 0; } }
+@keyframes vt-tab-in { from { opacity: 0; translate: calc(var(--tab-dir, 1) * 32px) 0; } }
 .dock { view-transition-name: dock; }
 .site-header { view-transition-name: site-header; }
 
