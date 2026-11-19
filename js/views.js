@@ -1211,8 +1211,9 @@ export function hallOfFame(model) {
     const d = model.driverMap.get(c.name);
     return `<li class="hof-season" style="--team:${colorFor(c.lastTeamKey, c.lastTeam)}">
       <a class="hof-season-n" href="${href.season(s.n)}">S${s.n}</a>
+      <div class="hof-drv"><span class="kicker">${t('common.champion')}</span>
       <p class="hof-champ">${flag(d?.flag, d ? fmt.country(d.flag) || d.country : '')}${driverLink(model, c.name, { flagOn: false })}</p>
-      <p class="sub hof-meta">${teamBadge(c.lastTeamKey, c.lastTeam)}</p>
+      <p class="sub hof-meta">${teamBadge(c.lastTeamKey, c.lastTeam)}</p></div>
       <div class="hof-cons"><span class="kicker">${t('common.constructorChampion')}</span>${teamBadge(k.key, k.name)}${lineup(model, k)}</div>
     </li>`;
   }).join('');

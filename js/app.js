@@ -87,12 +87,23 @@ const DOCK_ICONS = {
   tracks: '<path d="M6.5 21V4M6.5 4h11l-2 4 2 4h-11"/>', // shifted right so the flag sits centred
   'hall-of-fame': '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 4M17 6h2.5a2.5 2.5 0 0 1-2.6 4"/>',
   stats: '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>',
+  more: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>',
 };
+// Sections behind the "more" button (three lines) at the end of the dock.
+const DOCK_MORE = ['hall-of-fame', 'stats'];
 function buildDock() {
   const dock = document.querySelector('.dock');
   dock.setAttribute('aria-label', t('nav.primary'));
   // Icons only; the full section name is the link's accessible name and its tooltip.
-  dock.innerHTML = NAV.map(([p, key]) => `<a href="${navHref(p)}" data-nav="${p}" aria-label="${esc(t(key))}" title="${esc(t(key))}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${DOCK_ICONS[p] || ''}</svg></a>`).join('');
+  const icon = (p) => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${DOCK_ICONS[p] || ''}</svg>`;
+  const main = NAV.filter(([p]) => !DOCK_MORE.includes(p));
+  const more = NAV.filter(([p]) => DOCK_MORE.includes(p));
+  dock.innerHTML = main.map(([p, key]) => `<a href="${navHref(p)}" data-nav="${p}" aria-label="${esc(t(key))}" title="${esc(t(key))}">${icon(p)}</a>`).join('')
+    + `<button type="button" class="dock-more-btn" popovertarget="dock-more" aria-label="${esc(t('nav.more'))}" title="${esc(t('nav.more'))}">${icon('more')}</button>
+    <div class="dock-more" id="dock-more" popover>${more.map(([p, key]) => `<a href="${navHref(p)}" data-nav="${p}">${icon(p)}<span>${esc(t(key))}</span></a>`).join('')}</div>`;
+  const pop = dock.querySelector('.dock-more');
+  pop.addEventListener('click', (e) => { if (e.target.closest('a')) pop.hidePopover(); });
+  pop.addEventListener('toggle', (e) => dock.querySelector('.dock-more-btn').setAttribute('aria-expanded', e.newState === 'open'));
 }
 
 function markCurrent() {
@@ -101,6 +112,8 @@ function markCurrent() {
   for (const a of document.querySelectorAll('.site-menu [data-nav], .dock [data-nav]')) {
     if (a.dataset.nav === sec) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }
+  // The "more" button lights up while one of the sections behind it is open.
+  document.querySelector('.dock-more-btn')?.classList.toggle('is-current', DOCK_MORE.includes(sec));
 }
 
 // Inline navigation when every link fits on one row, popover menu otherwise (no hard-coded breakpoint).
@@ -403,6 +416,8 @@ async function boot() {
     // At the very bottom the dock comes back, filling the room the page leaves for it.
     const atEnd = y + innerHeight >= document.documentElement.scrollHeight - 4;
     document.body.classList.toggle('dock-off', dy > 0 && y > 80 && !atEnd);
+    // The "more" sheet goes away with the dock.
+    if (document.body.classList.contains('dock-off')) document.querySelector('.dock-more:popover-open')?.hidePopover();
     lastY = y;
   }, { passive: true });
   // Phones: the logo in the middle of the top bar takes you to the top of the current page (home is in the dock).
