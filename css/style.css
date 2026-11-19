@@ -373,6 +373,12 @@ a.chip { text-decoration: none; }
   margin-inline-start: 0.45rem; padding: 0.05rem 0.45rem; letter-spacing: 0.1em; text-transform: uppercase;
   background: rgb(80 200 255 / 0.14); color: #9fdcff; border: 1px solid rgb(80 200 255 / 0.4);
 }
+/* Sprint round in a table: a blue dot on the top right corner of the track's flag (instead of a "Sprint" badge). */
+.sprint-flag { position: relative; display: inline-flex; flex: none; vertical-align: middle; }
+.sprint-dot {
+  position: absolute; top: -0.2rem; right: -0.22rem; width: 0.45rem; height: 0.45rem; border-radius: 50%;
+  background: #5cc8ff; box-shadow: 0 0 0 1.5px var(--surface), 0 0 6px rgb(80 200 255 / 0.6);
+}
 .note-sprint { margin-block-end: 1rem; border-inline-start-color: #6fcfff; background: rgb(80 200 255 / 0.08); }
 .sprint-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #6fcfff; vertical-align: 0.1em; }
 /* Sprint rounds: a small blue dot on the top-right corner of the flag in the round head. */
@@ -1443,9 +1449,6 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   /* Team wins: a little less side padding so season, track and a full driver name fit without sideways scrolling. */
   .wins-table :is(th, td) { padding-inline: 0.5rem; }
   .hist-meta { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
-  /* "Sprint" shrinks to an "S" badge here (the word stays in the markup for screen readers and the hover hint). */
-  .hist-meta .badge-sprint { font-size: 0; margin: 0; padding-inline: 0.4rem; }
-  .hist-meta .badge-sprint::before { content: 'S'; font-size: 0.7rem; }
   .hist-meta .badge { margin: 0; }
   @media (prefers-reduced-motion: no-preference) { .site-logo.hop img { animation: logo-hop 0.45s cubic-bezier(.3, 1.6, .5, 1); } }
   main { padding-bottom: 1.25rem; } /* no footer below, and the body already leaves room for the dock */
@@ -1517,7 +1520,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 }
 /* Full: let go to refresh. While the data loads the logo breathes with a soft gold glow. */
 .site-logo.ptr-ready img:not(.ptr-ghost) { mask-image: none; }
-.site-logo.ptr-busy img:not(.ptr-ghost) { animation: ptr-glow 0.8s ease-in-out infinite alternate; }
+.site-logo.ptr-busy img:not(.ptr-ghost) { animation: ptr-glow 0.35s ease-in-out infinite alternate; }
 @keyframes logo-hop { 40% { translate: 0 -4px; scale: 1.08; } }
 @keyframes ptr-glow { to { filter: brightness(1.25) drop-shadow(0 0 8px rgb(242 193 78 / 0.55)); } }
 @media (prefers-reduced-motion: reduce) { .site-logo.ptr-busy img:not(.ptr-ghost) { animation-duration: 2s; } }

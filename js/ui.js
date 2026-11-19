@@ -36,7 +36,7 @@ export function teamLogo(key, cls = '', name = '') {
   const logo = logoFor(key, name);
   if (!logo) return `<span class="tlogo tlogo-empty ${cls}" aria-hidden="true"></span>`;
   const extra = `${logo.src.startsWith('hist/') ? ' tlogo-hist' : ''}${logo.invert ? ' tlogo-invert' : ''}${logo.round ? ' tlogo-round' : ''}`;
-  return `<img class="tlogo${extra} ${cls}" src="assets/teams/${logo.src}" alt="" width="28" height="28" loading="lazy" decoding="async">`;
+  return `<img class="tlogo${extra} ${cls}" src="assets/teams/${logo.src}" alt="" width="28" height="28">`;
 }
 
 /** Team label: current logo for the lineage + the name used at the time. */
@@ -86,6 +86,12 @@ export function posBadge(pos, dnf) {
   if (dnf) return `<span class="pos pos-dnf">${esc(t('common.dnf'))}</span>`;
   if (!pos) return '<span class="pos">—</span>';
   return `<span class="pos ${pos <= 3 ? 'pos-' + pos : ''}">${pos}</span>`;
+}
+
+/** A track's flag in tables, with a small blue dot on its top right corner when the round had a sprint race. */
+export function sprintFlag(flagHtml, race) {
+  if (!race?.sprint) return flagHtml;
+  return `<span class="sprint-flag">${flagHtml}<span class="sprint-dot" role="img" aria-label="${esc(t('common.sprint'))}" title="${esc(t('common.sprintHint'))}"></span></span>`;
 }
 
 export function sprintBadge(race) {

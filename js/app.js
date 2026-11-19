@@ -250,8 +250,34 @@ const saveScroll = () => { try { sessionStorage.setItem(SCROLL_KEY, JSON.stringi
 addEventListener('pagehide', saveScroll);
 addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveScroll(); });
 
+// Flags and team logos, fetched and decoded once in the background and kept in memory: a new page then shows
+// them at once instead of filling them in one by one after it appears (and after the slide-in animation).
+// (FLAG_URL is declared further down, next to warmOffline.)
+const TEAM_LOGOS = [
+  'alpine.png', 'astonmartin.png', 'audi.png', 'cadillac.png', 'ferrari.png', 'haasf1team.png', 'mclaren.png', 'mercedes.png',
+  'racingbulls.png', 'redbullracing.png', 'williams.png',
+  'hist/alfaromeo.jpg', 'hist/alphatauri.svg', 'hist/kicksauber.png', 'hist/racingpoint.svg', 'hist/renault.png',
+].map((f) => `assets/teams/${f}`);
+const warm = new Map();
+function warmImages(m) {
+  const flags = new Set([...m.drivers.map((d) => d.flag), ...Object.values(TRACK_COUNTRY)].filter(Boolean));
+  const urls = [...TEAM_LOGOS, ...[...flags].map((iso) => `${FLAG_URL}${iso}.svg`)].filter((u) => !warm.has(u));
+  if (!urls.length) return;
+  const load = () => {
+    for (const u of urls) {
+      const img = new Image();
+      img.src = u;
+      img.decode().catch(() => {});
+      warm.set(u, img);
+    }
+  };
+  // The first page's own images go first; the rest follows as soon as the browser has a moment.
+  if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 1500 }); else setTimeout(load, 300);
+}
+
 function render({ animate = false, soft = false, restore = null } = {}) {
   if (!model) return;
+  warmImages(model);
   rememberLastTrack();
   buildFooter();
   pending = false;
@@ -432,7 +458,8 @@ function initPullToRefresh() {
   ghost.className = 'ptr-ghost';
   ghost.setAttribute('aria-hidden', 'true');
   logo.prepend(ghost);
-  const LIMIT = 110, READY = 70;
+  // A longer pull than before fills the logo, so the gold rises slowly under the finger.
+  const LIMIT = 150, READY = 110;
   let startY = null, startX = 0, pull = 0, busy = false;
   const show = (px) => {
     logo.style.setProperty('--p', Math.min(1, px / READY).toFixed(3));
@@ -460,7 +487,7 @@ function initPullToRefresh() {
     if (!pull && Math.abs(e.touches[0].clientX - startX) > dy) { startY = null; return; }
     // Older iOS ignores overscroll-behavior: keep the page itself still while the logo fills.
     if (e.cancelable) e.preventDefault();
-    pull = LIMIT * (1 - Math.exp(-dy / 160)); // eases out towards LIMIT, like the system gesture
+    pull = LIMIT * (1 - Math.exp(-dy / 200)); // eases out towards LIMIT, like the system gesture
     begin();
     show(pull);
   }, { passive: false });
@@ -471,8 +498,8 @@ function initPullToRefresh() {
     busy = true;
     show(READY);
     logo.classList.add('ptr-busy');
-    // Glow at least briefly, so a fast refresh still reads as "done".
-    await Promise.all([refresh(), new Promise((r) => setTimeout(r, 700))]);
+    // Glow only briefly: done as soon as the data is in (a short minimum so it still reads as "refreshed").
+    await Promise.all([refresh(), new Promise((r) => setTimeout(r, 250))]);
     // Like a fresh visit: the home page draws a new fact even when the data has not changed.
     if (model && !path().split('/')[0]) { V.newFact(); render({ soft: true }); }
     logo.classList.remove('ptr-busy');

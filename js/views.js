@@ -6,7 +6,7 @@ import { TRACK_GEO } from './track-geo.js';
 import { teammateBattles } from './data.js';
 import {
   esc, href, flag, driverLink, teamBadge, teamLogo, trackLink, trackFlag, trackMap, posBadge, ordinalPos, seasonTag,
-  statTile, section, moreLink, pageHead, hiddenHead, backLink, SOCIAL, socialIcon, table, barChart, sprintBadge, fold,
+  statTile, section, moreLink, pageHead, hiddenHead, backLink, SOCIAL, socialIcon, table, barChart, sprintBadge, sprintFlag, fold,
   PHONE_TRACK_NAME,
 } from './ui.js';
 
@@ -733,7 +733,7 @@ export function stats(model) {
       driverCol(model, (r) => r.driver),
       numCol(t('common.from'), (r) => r.grid, { desc: false, keep: true, html: (r) => `P${r.grid}` }),
       numCol(t('common.to'), (r) => r.pos, { desc: false, keep: true, html: (r) => `P${r.pos}` }),
-      { label: t('common.track'), value: (r) => r.raceObj.track, html: (r) => `<a href="${href.race(r.raceObj.id)}">${trackFlag(r.raceObj.track)} ${esc(model.trackName[r.raceObj.track] || r.raceObj.track)}</a>${sprintBadge(r.raceObj)}` },
+      { label: t('common.track'), value: (r) => r.raceObj.track, html: (r) => `<a href="${href.race(r.raceObj.id)}">${sprintFlag(trackFlag(r.raceObj.track), r.raceObj)} ${esc(model.trackName[r.raceObj.track] || r.raceObj.track)}</a>` },
       { label: t('common.season'), type: 'num', value: (r) => r.raceObj.id, html: (r) => seasonTag(r.raceObj.season) },
     ],
   }) },
@@ -876,12 +876,12 @@ export function driver(model, name) {
   const milestones = milestonesHtml(model, msList);
   const historyRows = [...d.entries].reverse();
   const historyTable = table({
-    caption: `${t('common.history')} — ${d.name}`, rows: historyRows, filter: true,
+    caption: `${t('common.history')} — ${d.name}`, rows: historyRows, colsToggle: false,
     columns: [
       { label: t('common.season'), type: 'num', sticky: 1, cls: 'c-pos', value: (r) => r.race, html: (r) => seasonTag(r.season) },
       { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => {
         const name = trackNameSpans(model, r.track);
-        return `<a href="${href.race(r.race)}" class="who">${trackFlag(r.track)}${name}</a> <span class="hist-meta"><span class="sub">R${model.races.get(r.race).round}</span>${sprintBadge(model.races.get(r.race))}${ppFl(r)}</span>`;
+        return `<a href="${href.race(r.race)}" class="who">${sprintFlag(trackFlag(r.track), model.races.get(r.race))}${name}</a> <span class="hist-meta"><span class="sub">R${model.races.get(r.race).round}</span>${ppFl(r)}</span>`;
       } },
       { label: t('common.team'), value: (r) => r.team, html: (r) => teamBadge(r.teamKey, r.team) },
       numCol(t('common.grid'), (r) => r.grid ?? '', { desc: false, html: (r) => (r.grid ? `${r.grid}` : '—') }),
@@ -1037,7 +1037,7 @@ export function team(model, key) {
     ],
   }), { id: 't-seasons' })}
   ${section(t('team.drivers'), table({
-    caption: `${t('team.drivers')} — ${tm.info.name}`, rows: driverRows, filter: driverRows.length > 12,
+    caption: `${t('team.drivers')} — ${tm.info.name}`, rows: driverRows, colsToggle: false,
     columns: [driverCol(model), numCol(t('common.races'), (r) => r.races), numCol(t('common.wins'), (r) => r.wins, { keep: true }), numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.polesShort'), (r) => r.poles, { abbr: t('common.poles') }), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' })],
   }), { id: 't-drivers' })}
   <div class="grid-2">
@@ -1149,7 +1149,7 @@ export function track(model, code) {
   }), { id: 'tr-seasons' })}
   <div class="grid-2">
     ${section(t('track.driverTable'), table({
-      caption: `${t('track.driverTable')} — ${tr.name}`, rows: tr.driverList, filter: tr.driverList.length > 12,
+      caption: `${t('track.driverTable')} — ${tr.name}`, rows: tr.driverList, colsToggle: false,
       columns: [posCol((r) => tr.driverList.indexOf(r) + 1), driverCol(model), numCol(t('common.races'), (r) => r.races), numCol(t('common.wins'), (r) => r.wins), numCol(t('common.podiums'), (r) => r.podiums), numCol(t('common.polesShort'), (r) => r.poles, { abbr: t('common.poles') }), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' })],
     }), { id: 'tr-drivers', cls: 'tall' })}
     ${section(t('track.teamTable'), table({
