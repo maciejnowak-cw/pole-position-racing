@@ -51,6 +51,15 @@ export function teamBadge(key, name, { link = true } = {}) {
     : `<span class="team" ${style}>${inner}</span>`;
 }
 
+// Short, well-known track names: used in narrow phone tables (the full circuit name stays on wider screens)
+// and as extra search words, so "Spa" or "COTA" finds the track.
+export const PHONE_TRACK_NAME = {
+  ABU: 'Yas Marina', AUS: 'Albert Park', AUT: 'Red Bull Ring', AZE: 'Baku', BAH: 'Bahrain', BEL: 'Spa', BRA: 'Interlagos',
+  CAN: 'Montreal', CHI: 'Shanghai', FRA: 'Paul Ricard', GBR: 'Silverstone', HUN: 'Hungaroring', ITA: 'Monza', IMO: 'Imola',
+  JAP: 'Suzuka', MEX: 'Mexico City', MON: 'Monaco', NET: 'Zandvoort', POR: 'Portimão', RUS: 'Sochi', SAU: 'Jeddah',
+  SIN: 'Marina Bay', SPA: 'Barcelona', USA: 'COTA', MIA: 'Miami', LAS: 'Las Vegas', QAT: 'Lusail', MAD: 'Madring',
+};
+
 export function trackFlag(code) {
   return flag(TRACK_COUNTRY[code] || '');
 }

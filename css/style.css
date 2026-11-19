@@ -318,6 +318,8 @@ a.tag-gold:hover { filter: brightness(1.08); }
 /* Driver profile achievements row */
 .badges { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.7rem; }
 a.chip { text-decoration: none; }
+/* A country flag inside a chip (best / worst track) is sized to the chip's text. */
+.chip .flag { width: 1.3em; height: 0.97em; border-radius: 2px; margin-inline-end: -0.15rem; }
 a.chip:hover { border-color: var(--gold); color: var(--gold-hi); }
 .chip-live { border-color: rgb(255 107 107 / 0.45); color: #ffc2c2; }
 .chip-live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
@@ -572,6 +574,18 @@ td > .pos-cell { display: grid; width: fit-content; margin-inline: auto; }
   }
   .tablist [role='tab'][aria-selected='true'] { border-color: rgb(242 193 78 / 0.55); background: var(--gold-soft); }
   .tablist [role='tab'][aria-selected='true']::after { content: none; }
+  /* Every row that scrolls sideways (tabs, stat boxes, milestones; see scrollHints in views.js):
+     with more cards past an edge, the left edge fades out; the right edge gets a fade with a gold arrow
+     that stays pinned to the screen edge (sticky, over the last visible card) until the row reaches its end. */
+  :is(.tablist, .tiles-rail, .milestones).more-start { mask-image: linear-gradient(to right, rgb(0 0 0 / 0.25), #000 2.5rem); }
+  :is(.tablist, .tiles-rail, .milestones).more-end::after {
+    content: ''; position: sticky; right: calc(var(--gutter) * -1); z-index: 1; flex: none; width: 3.5rem; margin-left: -3.5rem; margin-right: calc(var(--gutter) * -1);
+    pointer-events: none;
+    /* Kept quiet: a soft fade and a small, half-transparent arrow. */
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f2c14e' stroke-opacity='0.6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E") right 6px center / 14px 14px no-repeat,
+      linear-gradient(to right, rgb(7 7 8 / 0), rgb(7 7 8 / 0.8) 55%, rgb(7 7 8 / 0.95));
+  }
 }
 
 /* Season picker: one row (previous season, current season, next season); the current one opens all seasons as a grid. */
@@ -1318,6 +1332,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   /* Driver race history: short track name on one line; round and badges stay together (on the same line when they fit). */
   .tn-full { display: none; }
   .tn-short { display: inline !important; white-space: nowrap; }
+  td.c-nowrap .who { white-space: nowrap; }
   .hist-meta { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
   /* "Sprint" shrinks to an "S" badge here (the word stays in the markup for screen readers and the hover hint). */
   .hist-meta .badge-sprint { font-size: 0; margin: 0; padding-inline: 0.4rem; }
@@ -1485,6 +1500,9 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 }
 .fact > p { margin: 0; }
 .fact-title { font: italic 800 clamp(1.25rem, 3vw, 1.6rem) / 1.15 var(--font-display); text-transform: uppercase; }
+/* Flag + first word of a track name in a fact title: kept together on one line (see factTrack in views.js). */
+.fact-track { white-space: nowrap; }
+.fact-track .flag { width: 0.96em; height: 0.72em; margin-inline-end: 0.25em; vertical-align: -0.19em; border-radius: 2px; } /* cap height of the title font, centred on the capitals */
 .fact-who { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.3rem 0.6rem; }
 /* "ahead of <driver>": the second driver looks exactly like the first; only the word between them is muted. */
 .fact-who > .sub:has(.who) { display: inline-flex; align-items: center; gap: 0.6rem; font-size: inherit; line-height: inherit; }
@@ -1541,7 +1559,8 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .tiles-rail > * { flex: 0 0 calc((100% - 1rem) / 2.4); display: grid; align-content: center; }
   /* A box with a driver name grows to fit the whole name. */
   .tiles-rail > :has(.who) { flex: 0 0 auto; min-width: calc((100% - 1rem) / 2.4); max-width: 80%; }
-  .milestones { grid-auto-columns: calc((100% - 0.75rem) / 1.6); padding-block: 6px 1px; }
+  .milestones { display: flex; padding-block: 6px 1px; }
+  .milestones > li { flex: 0 0 calc((100% - 0.75rem) / 1.6); }
 }
 
 /* Search box above long tables */

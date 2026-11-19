@@ -174,7 +174,7 @@ const saveScroll = () => { try { sessionStorage.setItem(SCROLL_KEY, JSON.stringi
 addEventListener('pagehide', saveScroll);
 addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveScroll(); });
 
-function render({ animate = false, soft = false } = {}) {
+function render({ animate = false, soft = false, restore = null } = {}) {
   if (!model) return;
   rememberLastTrack();
   buildFooter();
@@ -190,6 +190,7 @@ function render({ animate = false, soft = false } = {}) {
     markCurrent();
     if (soft) scrollTo(0, y);
     else if (restoreY != null) { const to = restoreY; restoreY = null; scrollTo(0, to); requestAnimationFrame(() => scrollTo(0, to)); }
+    else if (restore != null) scrollTo(0, restore);
     else scrollTo(0, 0);
   };
   const focus = () => { if (!soft) main.querySelector('h1')?.focus({ preventScroll: true }); };
@@ -456,18 +457,30 @@ async function boot() {
     if (!model && fetchFailed) showError();
   });
   // Count in-site steps in history.state so the back arrow on detail pages never leaves the site.
-  if (typeof history.state?.depth !== 'number') history.replaceState({ depth: 0 }, '');
+  // Each entry also gets a key, so going back or forward returns to where that page was scrolled.
+  const newKey = () => Math.random().toString(36).slice(2, 10);
+  if (typeof history.state?.depth !== 'number' || !history.state.key) history.replaceState({ depth: history.state?.depth ?? 0, key: newKey() }, '');
   let depth = history.state.depth;
+  let key = history.state.key;
+  const scrolls = new Map(); // entry key → scroll position when it was left
+  let appBack = false; // the page's own back arrow (vs. the browser's back, e.g. a swipe from the screen edge)
+  const touch = matchMedia('(pointer: coarse)').matches;
   cleanHome();
   const onNav = () => {
     cleanHome();
+    scrolls.set(key, scrollY); // still the page being left: its content is replaced below
     const before = depth;
-    if (typeof history.state?.depth === 'number') depth = history.state.depth; // back/forward
-    else history.replaceState({ depth: ++depth }, '');
+    const traversal = typeof history.state?.depth === 'number' && !!history.state.key; // back/forward
+    if (traversal) ({ depth, key } = history.state);
+    else { key = newKey(); history.replaceState({ depth: ++depth, key }, ''); }
     // Which way the page slides in (see "View transitions" in style.css).
     document.documentElement.dataset.nav = depth < before ? 'back' : 'forward';
     if (!path().split('/')[0]) V.newFact(); // back on the home page: draw a new fact
-    render({ animate: true });
+    // On touch screens a back/forward that is not our own arrow is usually the edge swipe: the browser has already
+    // slid the previous page in, so a second slide would make it jump. Show it straight away, where it was left.
+    const swipe = traversal && touch && !appBack;
+    appBack = false;
+    render({ animate: !swipe, restore: traversal ? scrolls.get(key) ?? null : null });
   };
   addEventListener('hashchange', onNav);
   // Links to the home page ("./") stay in the page: a new history entry with no hash, then the usual render.
@@ -476,7 +489,7 @@ async function boot() {
     if (!home || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
     if (!location.hash) return; // already home
-    history.pushState({ depth: depth + 1 }, '', location.pathname + location.search);
+    history.pushState(null, '', location.pathname + location.search); // onNav gives it its depth and key
     onNav();
   });
   document.addEventListener('click', (e) => {
@@ -492,7 +505,7 @@ async function boot() {
       cols.querySelector('[data-less]').hidden = !on;
       document.getElementById(cols.dataset.tableCols)?.closest('.table-wrap').classList.toggle('cols-all', on);
     }
-    if (e.target.closest('[data-back]') && depth > 0) { e.preventDefault(); history.back(); }
+    if (e.target.closest('[data-back]') && depth > 0) { e.preventDefault(); appBack = true; history.back(); }
     // Calendar race cards: a click anywhere outside a link opens the race (driver/team links keep their own target).
     const card = e.target.closest('[data-card-href]');
     if (card && !e.target.closest('a, button') && !getSelection().toString()) location.hash = card.dataset.cardHref;

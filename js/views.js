@@ -7,6 +7,7 @@ import { teammateBattles } from './data.js';
 import {
   esc, href, flag, driverLink, teamBadge, teamLogo, trackLink, trackFlag, trackMap, posBadge, ordinalPos, seasonTag,
   statTile, section, moreLink, pageHead, hiddenHead, backLink, SOCIAL, socialIcon, table, barChart, sprintBadge, fold,
+  PHONE_TRACK_NAME,
 } from './ui.js';
 
 /* ---------- shared bits ---------- */
@@ -101,6 +102,23 @@ function tabs(list, { selected = 0, base = '', home = list[0].slug } = {}) {
     ${list.map((x, i) => `<div role="tabpanel" id="${id}-p${i}" aria-labelledby="${id}-t${i}" tabindex="0" ${i !== selected ? 'hidden' : ''}>${x.html}</div>`).join('')}
   </div>`;
 }
+// Rows that scroll sideways on phones get classes for the edges where more cards are hidden
+// (more-start / more-end), which the CSS turns into a fade and an arrow.
+function scrollHints(root) {
+  for (const row of root.querySelectorAll('[role=tablist], .tiles-rail, .milestones')) {
+    if (row.dataset.hints != null) continue;
+    row.dataset.hints = '';
+    const edges = () => {
+      const max = row.scrollWidth - row.clientWidth;
+      row.classList.toggle('more-start', row.scrollLeft > 2);
+      row.classList.toggle('more-end', row.scrollLeft < max - 2);
+    };
+    row.addEventListener('scroll', edges, { passive: true });
+    new ResizeObserver(edges).observe(row);
+    edges();
+  }
+}
+
 export function initTabs(root) {
   for (const pick of root.querySelectorAll('.season-pick:not([data-ready])')) {
     pick.dataset.ready = '';
@@ -126,6 +144,14 @@ export function initTabs(root) {
   }
   for (const box of root.querySelectorAll('[data-tabs]')) {
     const btns = [...box.querySelector('[role=tablist]').children];
+    // Start with the open tab in view (e.g. a link straight to the last tab).
+    const row = box.querySelector('[role=tablist]');
+    const open = row.querySelector('[aria-selected=true]');
+    if (open && row.scrollWidth > row.clientWidth) {
+      const pad = parseFloat(getComputedStyle(row).paddingLeft) || 0;
+      const r = open.offsetLeft + open.offsetWidth + pad - row.clientWidth;
+      if (r > 0) row.scrollLeft = r;
+    }
     const select = (b, focus) => {
       for (const x of btns) {
         const on = x === b;
@@ -160,6 +186,7 @@ export function initTabs(root) {
       select(btns[(n + btns.length) % btns.length], true);
     });
   }
+  scrollHints(root);
 }
 
 /* ---------- Home ---------- */
@@ -188,7 +215,8 @@ function leagueFacts(model) {
   const track = (code) => model.trackName[code] || code;
   // Track in a fact's detail line: country flag + track name.
   const place = (code) => `<span class="fact-place">${trackFlag(code)}${esc(track(code))}</span>`;
-  const add = (title, who, detail, link) => facts.push({ title, who, detail, link });
+  // `track` (a track from model.tracks) puts that track's flag in front of its name in the title.
+  const add = (title, who, detail, link, track) => facts.push({ title, who, detail, link, track });
 
   // Wins from far down the grid and big climbs (top 8 of each).
   model.raceList.filter((r) => r.winner?.win && r.winner.grid >= 6).sort((a, b) => b.winner.grid - a.winner.grid).slice(0, 8)
@@ -201,9 +229,9 @@ function leagueFacts(model) {
   // Tracks: dominant winner and variety of winners.
   for (const tr of model.tracks) {
     const king = [...tr.drivers.values()].sort((a, b) => b.wins - a.wins || b.points - a.points)[0];
-    if (king?.wins >= 3) add(t('fact.trackKing', { track: tr.name, n: king.wins }), driverLink(model, king.name), '', href.track(tr.code));
+    if (king?.wins >= 3) add(t('fact.trackKing', { track: tr.name, n: king.wins }), driverLink(model, king.name), '', href.track(tr.code), tr);
     const winners = new Set(tr.races.map((r) => r.winner?.driver).filter(Boolean)).size;
-    if (winners >= 6) add(t('fact.trackWinners', { track: tr.name, n: winners }), `<span class="who">${trackFlag(tr.code)}<span>${esc(fmt.country(TRACK_COUNTRY[tr.code]))}</span></span>`, '', href.track(tr.code));
+    if (winners >= 6) add(t('fact.trackWinners', { track: tr.name, n: winners }), `<span class="who">${trackFlag(tr.code)}<span>${esc(fmt.country(TRACK_COUNTRY[tr.code]))}</span></span>`, '', href.track(tr.code), tr);
   }
 
   // Title fights decided by a small margin.
@@ -291,17 +319,23 @@ function leagueFacts(model) {
   });
   const trackWho = (tr) => `<span class="who">${trackFlag(tr.code)}<span>${esc(fmt.country(TRACK_COUNTRY[tr.code]))}</span></span>`;
   const hi = [...conv].sort((a, b) => b.pct - a.pct || b.n - a.n)[0], lo = [...conv].sort((a, b) => a.pct - b.pct || b.n - a.n)[0];
-  if (hi && hi.pct >= 0.6) add(t('fact.poleWins', { track: hi.tr.name, pct: `${Math.round(hi.pct * 100)}%` }), trackWho(hi.tr), `${hi.wins} / ${hi.n}`, href.track(hi.tr.code));
-  if (lo && lo !== hi && lo.pct <= 0.25) add(t(lo.wins ? 'fact.poleLoses' : 'fact.poleNever', { track: lo.tr.name, pct: `${Math.round(lo.pct * 100)}%` }), trackWho(lo.tr), `${lo.wins} / ${lo.n}`, href.track(lo.tr.code));
+  if (hi && hi.pct >= 0.6) add(t('fact.poleWins', { track: hi.tr.name, pct: `${Math.round(hi.pct * 100)}%` }), trackWho(hi.tr), `${hi.wins} / ${hi.n}`, href.track(hi.tr.code), hi.tr);
+  if (lo && lo !== hi && lo.pct <= 0.25) add(t(lo.wins ? 'fact.poleLoses' : 'fact.poleNever', { track: lo.tr.name, pct: `${Math.round(lo.pct * 100)}%` }), trackWho(lo.tr), `${lo.wins} / ${lo.n}`, href.track(lo.tr.code), lo.tr);
 
   // Constructors with titles.
   for (const tm of model.teams) if (tm.titles.length >= 2) add(t('fact.teamTitles', { n: tm.titles.length }), teamBadge(tm.key, tm.info.name), tm.titles.map((x) => `S${x}`).join(', '), href.team(tm.key));
   return facts;
 }
 
+// Track name in a fact title with its flag in front; the flag stays on the line of the name's first word.
+function factTrack(tr) {
+  const [first, ...rest] = tr.name.split(' ');
+  return `<span class="fact-track">${trackFlag(tr.code)}${esc(first)}</span>${rest.length ? ' ' + esc(rest.join(' ')) : ''}`;
+}
+
 function factCard(f) {
   return `<p class="kicker">${esc(t('fact.label'))}</p>
-    <p class="fact-title">${esc(f.title)}</p>
+    <p class="fact-title">${f.track ? esc(f.title).replace(esc(f.track.name), factTrack(f.track)) : esc(f.title)}</p>
     <p class="fact-who">${f.who}${f.detail ? `<span class="sub">${f.detail}</span>` : ''}</p>`;
 }
 
@@ -703,13 +737,11 @@ export function stats(model) {
  */
 // Short names for tracks better known by another name than their town.
 const CHIP_TRACK_NAME = { FRA: 'Paul Ricard' };
-// Short, well-known track names for narrow phone tables (the full circuit name stays on wider screens).
-const PHONE_TRACK_NAME = {
-  ABU: 'Yas Marina', AUS: 'Albert Park', AUT: 'Red Bull Ring', AZE: 'Baku', BAH: 'Bahrain', BEL: 'Spa', BRA: 'Interlagos',
-  CAN: 'Montreal', CHI: 'Shanghai', FRA: 'Paul Ricard', GBR: 'Silverstone', HUN: 'Hungaroring', ITA: 'Monza', IMO: 'Imola',
-  JAP: 'Suzuka', MEX: 'Mexico City', MON: 'Monaco', NET: 'Zandvoort', POR: 'Portimão', RUS: 'Sochi', SAU: 'Jeddah',
-  SIN: 'Marina Bay', SPA: 'Barcelona', USA: 'COTA', MIA: 'Miami', LAS: 'Las Vegas', QAT: 'Lusail', MAD: 'Madring',
-};
+// Full track name, plus the short phone name (see PHONE_TRACK_NAME) that CSS swaps in on narrow screens.
+function trackNameSpans(model, code) {
+  const full = model.trackName[code] || code, short = PHONE_TRACK_NAME[code];
+  return short && short !== full ? `<span class="tn-full">${esc(full)}</span><span class="tn-short">${esc(short)}</span>` : `<span>${esc(full)}</span>`;
+}
 
 function trackForm(model, d) {
   const byTrack = new Map();
@@ -724,7 +756,7 @@ function trackForm(model, d) {
   const best = list[0], worst = list[list.length - 1];
   // Short track name; the average finish is in the hover hint only.
   const short = (code) => CHIP_TRACK_NAME[code] || TRACK_GEO[code]?.loc || model.trackName[code] || code;
-  const one = (key, x) => chip(`${esc(t(key))}: ${esc(short(x.code))}`,
+  const one = (key, x) => chip(`${esc(t(key))}: ${trackFlag(x.code)}${esc(short(x.code))}`,
     { link: href.track(x.code), title: `${model.trackName[x.code] || x.code} · P${fmt.dec(x.avg, 1)} · ${t('common.trackFormHint', { n: x.n })}` });
   return [one('common.bestTrack', best), one('common.worstTrack', worst)];
 }
@@ -837,8 +869,7 @@ export function driver(model, name) {
     columns: [
       { label: t('common.season'), type: 'num', sticky: 1, cls: 'c-pos', value: (r) => r.race, html: (r) => seasonTag(r.season) },
       { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => {
-        const full = model.trackName[r.track] || r.track, short = PHONE_TRACK_NAME[r.track];
-        const name = short && short !== full ? `<span class="tn-full">${esc(full)}</span><span class="tn-short">${esc(short)}</span>` : `<span>${esc(full)}</span>`;
+        const name = trackNameSpans(model, r.track);
         return `<a href="${href.race(r.race)}" class="who">${trackFlag(r.track)}${name}</a> <span class="hist-meta"><span class="sub">R${model.races.get(r.race).round}</span>${sprintBadge(model.races.get(r.race))}${ppFl(r)}</span>`;
       } },
       { label: t('common.team'), value: (r) => r.team, html: (r) => teamBadge(r.teamKey, r.team) },
@@ -915,7 +946,7 @@ function milestonesHtml(model, items) {
     const tail = who === undefined ? (e.dnf ? 'DNF' : e.pos ? 'P' + e.pos : '—') : who;
     return `<li class="${keys.some((k) => MS_GOLD.includes(k)) ? 'ms-gold' : ''}">
       <p class="kicker">${esc(label)}</p>
-      <a class="who" href="${href.race(e.race)}">${trackFlag(e.track)}<span>${esc(model.trackName[e.track] || e.track)}</span></a>
+      <a class="who" href="${href.race(e.race)}">${trackFlag(e.track)}${trackNameSpans(model, e.track)}</a>
       <p class="sub">S${e.season} · R${race.round}${tail ? ` · ${esc(tail)}` : ''}</p>
     </li>`;
   }).join('')}</ol>`;
@@ -1003,14 +1034,14 @@ export function team(model, key) {
       caption: `${t('common.winsList')} — ${tm.info.name}`, rows: [...tm.winsList].reverse(),
       columns: [
         { label: t('common.season'), type: 'num', sticky: 1, cls: 'c-pos', value: (r) => r.race, html: (r) => seasonTag(r.season) },
-        { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => `<a class="who" href="${href.race(r.race)}">${trackFlag(r.track)}<span>${esc(model.trackName[r.track] || r.track)}</span></a>` },
-        { label: t('common.driver'), keep: true, value: (r) => r.driver, html: (r) => driverLink(model, r.driver) },
+        { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.track] || r.track, html: (r) => `<a class="who" href="${href.race(r.race)}">${trackFlag(r.track)}${trackNameSpans(model, r.track)}</a>` },
+        { label: t('common.driver'), keep: true, cls: 'c-nowrap', value: (r) => r.driver, html: (r) => driverLink(model, r.driver) },
       ],
     }), { id: 't-wins', cls: 'tall' })}
     ${section(t('team.tracks'), table({
       caption: `${t('team.tracks')} — ${tm.info.name}`, rows: [...tm.tracks.values()].sort((a, b) => b.points - a.points),
       columns: [
-        { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.code] || r.code, html: (r) => trackLink(model, r.code) },
+        { label: t('common.track'), rowHeader: true, value: (r) => model.trackName[r.code] || r.code, html: (r) => `<a class="who" href="${href.track(r.code)}">${trackFlag(r.code)}${trackNameSpans(model, r.code)}</a>` },
         numCol(t('common.wins'), (r) => r.wins, { keep: true }), numCol(t('common.points'), (r) => r.points, { cls: 'c-pts' }),
       ],
     }), { id: 't-tracks', cls: 'tall' })}
@@ -1243,7 +1274,7 @@ function closestNames(model, query, limit = 6) {
   const items = [
     ...model.drivers.map((d) => ({ name: d.name, link: driverLink(model, d.name) })),
     ...model.teams.map((tm) => ({ name: tm.info.name, alt: tm.key, link: teamBadge(tm.key, tm.info.name) })),
-    ...model.tracks.map((tr) => ({ name: tr.name, alt: `${tr.code} ${TRACK_GEO[tr.code]?.loc || ''}`, link: `<span class="who">${trackFlag(tr.code)}<a href="${href.track(tr.code)}">${esc(tr.name)}</a></span>` })),
+    ...model.tracks.map((tr) => ({ name: tr.name, alt: `${tr.code} ${TRACK_GEO[tr.code]?.loc || ''} ${PHONE_TRACK_NAME[tr.code] || ''}`, link: `<span class="who">${trackFlag(tr.code)}<a href="${href.track(tr.code)}">${esc(tr.name)}</a></span>` })),
   ];
   const scored = items
     .map((it) => {

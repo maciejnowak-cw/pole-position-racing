@@ -1,7 +1,7 @@
 // Quick search: a dialog opened from the header button, Ctrl/Cmd+K or "/", jumping to a driver, team, track,
 // season ("S12") or race ("Monza S12").
 import { t, fmt } from './i18n.js';
-import { esc, href, flag, teamLogo, fold } from './ui.js';
+import { esc, href, flag, teamLogo, fold, PHONE_TRACK_NAME } from './ui.js';
 import { TRACK_COUNTRY } from './countries.js';
 import { TRACK_GEO } from './track-geo.js';
 
@@ -15,7 +15,7 @@ function buildIndex(model) {
     const names = [tm.info.name, tm.info.full, ...(tm.names ? tm.names.keys() : [])].filter(Boolean);
     items.push({ kind: 'team', name: tm.info.name, alt: names.join(' '), url: href.team(tm.key), icon: teamLogo(tm.key), rank: tm.points });
   }
-  for (const tr of model.tracks) items.push({ kind: 'track', name: tr.name, alt: `${tr.code} ${TRACK_GEO[tr.code]?.loc || ''}`, url: href.track(tr.code), icon: flag(TRACK_COUNTRY[tr.code] || ''), rank: tr.races.length });
+  for (const tr of model.tracks) items.push({ kind: 'track', name: tr.name, alt: `${tr.code} ${TRACK_GEO[tr.code]?.loc || ''} ${PHONE_TRACK_NAME[tr.code] || ''}`, url: href.track(tr.code), icon: flag(TRACK_COUNTRY[tr.code] || ''), rank: tr.races.length, short: PHONE_TRACK_NAME[tr.code] });
   for (const n of model.seasonNums) {
     items.push({ kind: 'season', name: t('search.seasonName', { n }), alt: `S${n} sezon season`, url: href.season(n), icon: `<span class="search-season">S${n}</span>`, rank: n });
   }
@@ -24,7 +24,7 @@ function buildIndex(model) {
     const country = TRACK_COUNTRY[r.track] || '';
     items.push({
       kind: 'race', race: true, name: model.trackName[r.track] || r.track, meta: `S${r.season} · R${r.round}`,
-      alt: `${r.track} ${TRACK_GEO[r.track]?.loc || ''} ${fmt.country(country) || ''} S${r.season} R${r.round}`,
+      alt: `${r.track} ${TRACK_GEO[r.track]?.loc || ''} ${PHONE_TRACK_NAME[r.track] || ''} ${fmt.country(country) || ''} S${r.season} R${r.round}`,
       url: href.race(r.id), icon: flag(country), rank: i,
     });
   });
@@ -33,7 +33,10 @@ function buildIndex(model) {
 }
 
 function find(q) {
-  const f = fold(q.trim());
+  // "sezon 12" / "season 12" work like "S12", and "runda 5" / "round 5" like "R5" (also for races: "Monza sezon 12").
+  const f = fold(q.trim())
+    .replace(/\b(?:sezon|season)\s*(\d+)/g, 's$1')
+    .replace(/\b(?:runda|round)\s*(\d+)/g, 'r$1');
   if (!f) return [];
   const tokens = f.split(/\s+/);
   // Single races only once the query names a season or round ("s12", "r5"), so a plain track name
@@ -42,7 +45,9 @@ function find(q) {
   const score = (it) => {
     if (it.race && !withRaces) return 9;
     const words = it.key.split(/\s+/);
-    if (fold(it.name).startsWith(f)) return 0;
+    // The short track name ("Spa", "COTA") counts like the full name, so it wins over a match on the track code.
+    if (it.short && fold(it.short) === f) return -1; // exactly the short name: that track first
+    if (fold(it.name).startsWith(f) || (it.short && fold(it.short).startsWith(f))) return 0;
     if (tokens.every((tk) => words.some((w) => w.startsWith(tk)))) return 1;
     return it.key.includes(f) ? 2 : 9;
   };
