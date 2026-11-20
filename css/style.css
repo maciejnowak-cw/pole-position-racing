@@ -794,7 +794,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 /* ---------- Home ---------- */
 /* Narrow: one column in reading order. Wide: two independent columns (main + sidebar), so a tall
    sidebar never leaves a hole under the latest race. */
-.grid-home { display: flex; flex-direction: column; }
+.grid-home { display: flex; flex-direction: column; margin-top: 1.25rem; } /* with the blocks' own 1.25rem: the same 2.5rem gap above "Latest race" as between the blocks below */
 .grid-home .block { margin-block: 1.25rem; }
 .home-main, .home-side, .home-pair { display: contents; }
 @media (width < 1100px) {
@@ -815,6 +815,9 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .home-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2rem; align-items: start; }
   /* Both standings titles on two lines ("Klasyfikacja / kierowców"), so the pair reads the same side by side. */
   .home-pair .block-head h2 { width: min-content; }
+  /* "Ostatni mistrzowie" stays on one line, centred in a header as tall as the two-line titles beside it,
+     so its card starts level with theirs. */
+  .grid-home .o-5 .block-head h2 { min-height: 2lh; display: flex; align-items: center; }
   .home-pair > .block, .grid-home .o-5 { margin-block: 1.25rem; }
   /* Every home block on desktop: link sits under its title, so all headers line up the same way. */
   .grid-home .block-head { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
