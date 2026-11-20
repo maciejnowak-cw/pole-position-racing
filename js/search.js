@@ -24,7 +24,7 @@ function buildIndex(model) {
     const names = [tm.info.name, tm.info.full, ...(tm.names ? tm.names.keys() : [])].filter(Boolean);
     items.push({ kind: 'team', name: tm.info.name, alt: names.join(' '), url: href.team(tm.key), icon: teamLogo(tm.key), rank: tm.points });
   }
-  for (const tr of model.tracks) items.push({ kind: 'track', name: tr.name, alt: `${tr.code} ${TRACK_GEO[tr.code]?.loc || ''} ${PHONE_TRACK_NAME[tr.code] || ''} `, country: countryNames(TRACK_COUNTRY[tr.code]), url: href.track(tr.code), icon: flag(TRACK_COUNTRY[tr.code] || ''), rank: tr.races.length, short: PHONE_TRACK_NAME[tr.code] });
+  for (const tr of model.tracks) items.push({ kind: 'track', name: tr.name, alt: `${tr.code} ${TRACK_GEO[tr.code]?.loc || ''} ${tr.fullName} `, country: countryNames(TRACK_COUNTRY[tr.code]), url: href.track(tr.code), icon: flag(TRACK_COUNTRY[tr.code] || ''), rank: tr.races.length, short: PHONE_TRACK_NAME[tr.code] });
   for (const n of model.seasonNums) {
     items.push({ kind: 'season', name: t('search.seasonName', { n }), alt: `S${n} sezon season`, url: href.season(n), icon: `<span class="search-season">S${n}</span>`, rank: n });
   }
@@ -33,7 +33,7 @@ function buildIndex(model) {
     const country = TRACK_COUNTRY[r.track] || '';
     items.push({
       kind: 'race', race: true, name: model.trackName[r.track] || r.track, meta: `S${r.season} · R${r.round}`,
-      alt: `${r.track} ${TRACK_GEO[r.track]?.loc || ''} ${PHONE_TRACK_NAME[r.track] || ''} ${countryNames(country)} S${r.season} R${r.round}`,
+      alt: `${r.track} ${TRACK_GEO[r.track]?.loc || ''} ${model.trackFullName[r.track] || ''} ${countryNames(country)} S${r.season} R${r.round}`,
       url: href.race(r.id), icon: flag(country), rank: i,
     });
   });

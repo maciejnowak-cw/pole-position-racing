@@ -306,7 +306,7 @@ main > .sr-only:first-child + .block { margin-block-start: 0; }
   color: var(--gold-hi); text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 3px;
 } }
 /* Driver and team names: gold on hover but no underline (the preview card pops up as well, preview.js). */
-@media (hover: hover) { :is(a[href^='#/driver/'], a[href^='#/team/'])[href][href]:hover { text-decoration: none; } } /* doubled [href]: outranks the underline rule above */
+@media (hover: hover) { :is(a[href^='#/driver/'], a[href^='#/team/'], a[href^='#/track/'], a[href^='#/race/'])[href][href]:hover { text-decoration: none; } } /* doubled [href]: outranks the underline rule above */
 
 .team {
   display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none; white-space: nowrap;
@@ -453,6 +453,9 @@ td .pair, th .pair { flex-wrap: nowrap; }
   background: var(--surface); overscroll-behavior-x: contain;
 }
 .tall .table-wrap { max-block-size: min(640px, 75vh); }
+/* A table with more columns to the right: its right edge fades out (a mask on the box itself, so it stays
+   put while the table scrolls); views.js scrollHints sets .more-right until the last column is in view. */
+.table-wrap.more-right { mask-image: linear-gradient(to left, rgb(0 0 0 / 0.15), #000 3rem); }
 /* A tall table with more rows below: a soft fade and a small down arrow at the box's bottom edge, like the
    sideways rails' hint (views.js scrollHints sets .more-below while there is more to scroll). */
 .table-wrap.more-below::after {
@@ -842,9 +845,8 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .race-card-map { display: block; padding: 0.5rem; }
 .race-card h3 { font-size: clamp(1.3rem, 3vw, 1.9rem); font-style: italic; text-transform: uppercase; margin-block: 0.25rem 0.75rem; }
 .race-card h3 a { display: inline-flex; align-items: center; gap: 0.55rem; text-decoration: none; }
-/* The underline goes under the track name only, not under the flag next to it. */
+/* Gold on hover, no underline (like every other track name). */
 @media (hover: hover) { .race-card h3 a:hover { text-decoration: none; } }
-@media (hover: hover) { .race-card h3 a:hover > span:not(.flag) { text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 3px; } }
 .race-facts { display: grid; gap: 0.4rem; margin: 0; }
 .race-facts div { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.5rem; align-items: center; }
 .race-facts dt { color: var(--muted); font: 600 0.78rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; }
@@ -988,12 +990,17 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .team-card-stats { display: grid; justify-self: stretch; text-align: center; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 0.6rem 0 0; padding-top: 0.75rem; border-top: 1px solid var(--line); }
 .team-card-stats dt { color: var(--muted); font: 600 0.72rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; }
 .team-card-stats dd { margin: 0; font: italic 700 1.25rem var(--font-display); }
+.team-card-legend { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.2rem 0.5rem; justify-self: stretch; margin: 0.7rem 0 0; padding-top: 0.65rem; border-top: 1px solid var(--line); }
+.tcl-label { color: var(--gold); font: 600 0.72rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; }
+.team-card-legend .who { font-weight: 600; }
+.team-card-legend .tcl-label { flex-basis: 100%; text-align: center; } /* on its own line above the driver, like the labels above the numbers */
+.team-card-legend .who { line-height: 1.2; }
 /* Phones: a compact, left-aligned card – logo, name and full name in one row with the ranking on the right,
    the three numbers in a short row below – and the team colour as a strip on the left. */
 @media (width < 600px) {
   .team-grid { gap: 0.5rem; }
   .team-card {
-    grid-template-columns: 2.6rem minmax(0, 1fr) auto; grid-template-areas: 'logo name pos' 'logo sub pos' 'stats stats stats';
+    grid-template-columns: 2.6rem minmax(0, 1fr) auto; grid-template-areas: 'logo name pos' 'logo sub pos' 'stats stats stats' 'legend legend legend';
     align-items: center; justify-items: start; gap: 0 0.75rem; text-align: left;
     padding: 0.8rem 0.9rem 0.75rem 1rem;
   }
@@ -1008,6 +1015,9 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .team-card-stats > div { display: flex; align-items: baseline; justify-content: center; gap: 0.35rem; }
   .team-card-stats dt { font-size: 0.62rem; }
   .team-card-stats dd { font-size: 1rem; }
+  .team-card-legend { grid-area: legend; margin-top: 0.55rem; padding-top: 0.5rem; }
+  .tcl-label { font-size: 0.62rem; }
+  .team-card-legend .tcl-label { flex-basis: auto; } /* in one row, like "PUNKTY 3102" above */
 }
 
 
@@ -1104,7 +1114,8 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   padding: 1rem 1.1rem 1.05rem; border: 1px solid var(--line); border-radius: var(--radius);
   background: radial-gradient(120% 90% at 100% 0%, rgb(242 193 78 / 0.1), transparent 60%), linear-gradient(180deg, var(--surface-2), var(--surface));
 }
-.spot::after { content: ''; position: absolute; inset: 0 0 auto; height: 2px; background: var(--gold-grad); }
+/* Gold top edge as the card's own border, so it follows the rounded corners. */
+.spot { border-top: 2px solid var(--gold); padding-top: calc(1rem - 1px); }
 .spot-label { margin: 0; font: 700 0.75rem var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .spot-value { margin: 0.1rem 0 0; padding-inline: 0.12em; /* room for the italic overhang, which the gold text fill would clip */ font: italic 800 3rem/0.95 var(--font-display); background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .spot-who { margin: 0.2rem 0 0; font: italic 700 1.2rem var(--font-display); min-width: 0; max-width: 100%; }
@@ -1114,7 +1125,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .spot-next b { color: var(--muted); font-weight: 600; }
 .spot-next .flag { width: 1.15em; height: 0.85em; margin-inline: 0.1em 0.05em; }
 @media (width < 900px) { .spots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (width < 420px) { .spot { padding: 0.8rem 0.8rem 0.85rem; } .spot-value { font-size: 2.4rem; } .spot-who { font-size: 1.05rem; } }
+@media (width < 420px) { .spot { padding: calc(0.8rem - 1px) 0.8rem 0.85rem; } .spot-value { font-size: 2.4rem; } .spot-who { font-size: 1.05rem; } }
 
 /* Rankings: boards of horizontal bars, a few at a time behind category tabs. */
 .boards { display: grid; gap: 1rem; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); margin-top: 1rem; }
@@ -1141,8 +1152,22 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .bb-val { font: italic 700 1.05rem var(--font-display); font-variant-numeric: tabular-nums; }
 .is-top .bb-val { color: var(--gold); }
 
-/* Season and all-time records side by side on wide screens. */
-.st-records .tiles-compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Season and all-time records: a card of rows, like the rankings. The record's name on top, the holder below it,
+   the figure large on the right. */
+.rec-list { list-style: none; margin: 0; padding: 0.3rem 0.9rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.rec {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'label val' 'who val';
+  align-items: center; gap: 0.3rem 0.75rem; padding: 0.7rem 0;
+}
+.rec + .rec { border-top: 1px solid var(--line); }
+.rec-label { grid-area: label; color: var(--muted); font: 600 0.72rem var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; }
+.rec-who { grid-area: who; display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; min-width: 0; }
+.rec-who :is(.who a, a.team) { font-weight: 600; color: var(--text); } /* team names white like driver names, not the usual grey badge */
+@media (hover: hover) { .rec-who :is(.who a, a.team):hover { color: var(--gold-hi); } }
+.rec-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.4rem; color: var(--text-2); }
+.rec-meta .tag { margin: 0; height: 1.1rem; min-width: 2.1rem; padding-inline: 0.4rem; font-size: 0.72rem; } /* as tall as the name next to it */
+.rec-val { grid-area: val; font: italic 800 1.6rem var(--font-display); color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: end; }
+.rec-val small { font-size: 0.6em; font-weight: 700; color: var(--muted); }
 
 /* ---------- GOAT ---------- */
 .goat { font-size: 1.35rem; line-height: 1; }
@@ -1168,6 +1193,24 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 .race-nav { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
 .race-nav a { text-decoration: none; padding: 0.75rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-weight: 600; }
 @media (hover: hover) { .race-nav a:hover { border-color: var(--gold); } }
+/* Track page: the country flag in front of the track's name, sized to the big letters. */
+.track-title { display: flex; align-items: center; gap: 0.25em; }
+.track-title .flag { width: 0.8em; height: 0.6em; border-radius: 0.06em; }
+.race-nav .flag { vertical-align: -0.12em; margin-inline-end: 0.2em; }
+/* Phones: previous race on the left, next on the right, side by side – short track name over the season and round. */
+@media (width < 600px) {
+  .race-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+  .race-nav a { display: grid; align-items: center; column-gap: 0.55rem; row-gap: 0.1rem; min-width: 0; padding: 0.65rem 0.85rem; }
+  .race-nav .rn-track { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .race-nav .sub { font-size: 0.8rem; }
+  .race-nav .rn-arrow { grid-row: 1 / span 2; color: var(--gold); }
+  .rn-prev { grid-template-columns: auto minmax(0, 1fr); }
+  .rn-prev .rn-arrow { grid-column: 1; }
+  .rn-prev :is(.rn-track, .sub) { grid-column: 2; }
+  .rn-next { grid-template-columns: minmax(0, 1fr) auto; text-align: end; }
+  .rn-next .rn-arrow { grid-column: 2; grid-row: 1 / span 2; }
+  .rn-next :is(.rn-track, .sub) { grid-column: 1; }
+}
 
 /* ---------- Hall of Fame (trophy wall) ---------- */
 .hof-stars { color: var(--gold); letter-spacing: 0.12em; font-size: 0.95em; white-space: nowrap; }
@@ -1450,7 +1493,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   /* Driver race history: short track name on one line; round and badges stay together (on the same line when they fit). */
   .tn-full { display: none; }
   .tn-short { display: inline !important; white-space: nowrap; }
-  td.c-nowrap .who { white-space: nowrap; }
+  td.c-nowrap .who, td.c-nowrap > a { white-space: nowrap; }
   /* Team wins: a little less side padding so season, track and a full driver name fit without sideways scrolling. */
   .wins-table :is(th, td) { padding-inline: 0.5rem; }
   .hist-meta { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
@@ -1462,6 +1505,14 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
   .dock-off .site-header { translate: 0 -100%; }
   .head-pin { transition: top 0.25s ease; }
   .dock-off .head-pin { top: 0; }
+  /* In a browser tab (not the installed app) there is no dock: the sections open from a ☰ button in the top-right
+     corner, next to the magnifier. */
+  html:not(.pwa) .dock { display: none; }
+  html:not(.pwa) body { padding-bottom: 0; }
+  html:not(.pwa) .site-nav { display: flex; order: 4; grid-row: 1; grid-column: 3; justify-self: end; }
+  html:not(.pwa) .site-header .search-button { grid-row: 1; grid-column: 3; margin-inline-end: calc(44px + 0.5rem); }
+  html:not(.pwa) .menu-button { width: 44px; padding: 0; justify-content: center; }
+  html:not(.pwa) .menu-button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .dock > a, .dock-more-btn {
     display: grid; place-items: center; min-width: 0; height: 48px; padding: 0; border: 0; background: none; font: inherit;
     color: rgb(245 242 234 / 0.72); border-radius: 999px; -webkit-tap-highlight-color: transparent; cursor: pointer;
@@ -1520,6 +1571,26 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 @keyframes logo-hop { 40% { translate: 0 -4px; scale: 1.08; } }
 @keyframes ptr-glow { to { filter: brightness(1.25) drop-shadow(0 0 8px rgb(242 193 78 / 0.55)); } }
 @media (prefers-reduced-motion: reduce) { .site-logo.ptr-busy img { animation-duration: 2s; } }
+/* The refresh circle: slides down under the top bar with the finger, its gold arc filling up with the pull;
+   it spins while the data loads. */
+.ptr-spin {
+  --pull: 0;
+  position: fixed; z-index: 29; left: 50%; top: var(--site-header-h, 64px); /* under the top bar: it slides out from behind it */
+  width: 40px; height: 40px; margin-left: -20px; display: grid; place-items: center; pointer-events: none;
+  background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 50%;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.5);
+  opacity: 0; translate: 0 calc(-60px + var(--pull) * 76px); scale: calc(0.6 + var(--pull) * 0.4);
+  transition: opacity 0.2s, translate 0.25s ease, scale 0.25s ease;
+}
+.ptr-spin.on { opacity: 1; transition: opacity 0.1s; } /* follows the finger directly */
+.ptr-spin.busy { transition: translate 0.2s ease, scale 0.2s ease; }
+.ptr-spin svg { width: 24px; height: 24px; fill: none; stroke: var(--muted); stroke-width: 2.4; stroke-linecap: round; rotate: -90deg; }
+.ptr-spin circle { stroke-dasharray: calc(var(--pull) * 75) 100; transition: stroke 0.15s; }
+.ptr-spin.ready circle { stroke: var(--gold); }
+.ptr-spin.busy svg { animation: ptr-turn 0.8s linear infinite; }
+.ptr-spin.busy circle { stroke-dasharray: 60 100; }
+@keyframes ptr-turn { to { rotate: 270deg; } }
+@media (prefers-reduced-motion: reduce) { .ptr-spin.busy svg { animation-duration: 2s; } }
 
 /* ---------- View transitions ---------- */
 /* Going deeper (a link) slides the new page in from the right; going back (arrow, browser back) from the left.
@@ -1564,7 +1635,7 @@ input[type='search']:focus, select:focus { border-color: var(--gold); outline: n
 
 /* Driver profile stats: content centred at every width; the number sits in the centre column
    and the percentage hangs to its right without pushing it off-centre. */
-.tiles-compact .tile { text-align: center; }
+.tiles-compact .tile { text-align: center; display: grid; align-content: center; } /* short tiles centred in a taller row */
 .tiles-compact .tile dd { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 0.2rem 0.5rem; }
 .tiles-compact .tile-value { grid-column: 2; }
 .tiles-compact .tile-sub { grid-column: 3; justify-self: start; white-space: nowrap; }

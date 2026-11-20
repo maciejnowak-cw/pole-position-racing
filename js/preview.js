@@ -1,6 +1,7 @@
 // Preview cards: hovering a driver or team link (mouse only) shows who it is and the key all-time totals.
 import { t, fmt } from './i18n.js';
 import { esc, flag, teamBadge, teamLogo } from './ui.js';
+import { RESERVE } from './teams.js';
 
 const SHOW_DELAY = 280;
 const GAP = 10;
@@ -9,14 +10,15 @@ let card, getModel, timer = 0, current = null;
 
 const stat = (label, value) => `<div><dt>${esc(label)}</dt><dd>${value}</dd></div>`;
 
-function driverContent(d) {
+function driverContent(d, model) {
   const seasons = `S${d.firstSeason}${d.lastSeason !== d.firstSeason ? `–S${d.lastSeason}` : ''}`;
   return `<div class="pv-head">
       ${flag(d.flag)}
       <div><p class="pv-name">${esc(d.name)}</p><p class="pv-sub">${esc(fmt.country(d.flag) || d.country || '')} · ${seasons}</p></div>
       <span class="pv-goat ${d.goat <= 3 ? 'pv-goat-top' : ''}">#${d.goat} GOAT</span>
     </div>
-    <p class="pv-team">${teamBadge(d.lastTeamKey, d.lastTeam, { link: false })}</p>
+    <p class="pv-team">${d.lastSeason < Math.max(...model.seasonNums) // not in the current season: a reserve driver now
+      ? teamBadge(RESERVE) : teamBadge(d.lastTeamKey, d.lastTeam, { link: false })}</p>
     <dl class="pv-stats">
       ${stat(t('common.points'), fmt.int(d.points))}
       ${stat(t('common.races'), fmt.int(d.races))}
@@ -61,7 +63,7 @@ function show(link) {
   const key = raw && decodeURIComponent(raw);
   const item = kind === 'driver' ? model?.driverMap.get(key) : model?.teamMap.get(key);
   if (!item) return;
-  card.innerHTML = kind === 'driver' ? driverContent(item) : teamContent(item);
+  card.innerHTML = kind === 'driver' ? driverContent(item, model) : teamContent(item);
   // Team cards take the team colour on the top edge; driver cards stay gold.
   card.style.setProperty('--pv-accent', kind === 'team' ? item.info.color : '');
   card.classList.add('on');

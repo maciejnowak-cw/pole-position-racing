@@ -80,3 +80,11 @@ export const TRACK_NAMES = {
   USA: 'Circuit of The Americas', MIA: 'Miami International Autodrome', LAS: 'Las Vegas Strip Circuit',
   QAT: 'Losail International Circuit', MAD: 'Madring',
 };
+
+// Short, well-known track names shown everywhere on the site; also search words, so "Spa" or "COTA" finds the track.
+export const SHORT_TRACK_NAME = {
+  ABU: 'Yas Marina', AUS: 'Albert Park', AUT: 'Red Bull Ring', AZE: 'Baku', BAH: 'Bahrain', BEL: 'Spa', BRA: 'Interlagos',
+  CAN: 'Montreal', CHI: 'Shanghai', FRA: 'Paul Ricard', GBR: 'Silverstone', HUN: 'Hungaroring', ITA: 'Monza', IMO: 'Imola',
+  JAP: 'Suzuka', MEX: 'Mexico City', MON: 'Monaco', NET: 'Zandvoort', POR: 'Portimão', RUS: 'Sochi', SAU: 'Jeddah',
+  SIN: 'Marina Bay', SPA: 'Barcelona', USA: 'COTA', MIA: 'Miami', LAS: 'Las Vegas', QAT: 'Lusail', MAD: 'Madring',
+};

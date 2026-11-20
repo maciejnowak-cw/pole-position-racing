@@ -15,6 +15,9 @@ const header = document.querySelector('.site-header');
 const inner = header.querySelector('.header-inner');
 const menu = document.getElementById('site-menu');
 const menuBtn = header.querySelector('.menu-button');
+// Installed app (home-screen PWA): phones get the bottom dock; in a browser tab a menu button in the top bar instead.
+const isPwa = () => matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
+document.documentElement.classList.toggle('pwa', isPwa());
 
 let cfg = DEFAULT_CFG;
 let model = null;
@@ -242,7 +245,8 @@ function layoutNav(force = false) {
   const wasOpen = menu.matches(':popover-open');
   header.classList.add('is-wide', 'is-measuring', 'nav-ready');
   menu.removeAttribute('popover');
-  const fits = inner.scrollWidth <= inner.clientWidth + 1;
+  // Phones always use the popover menu (in a browser tab its button sits in the top-right corner).
+  const fits = !matchMedia('(width < 760px)').matches && inner.scrollWidth <= inner.clientWidth + 1;
   if (!fits) {
     header.classList.remove('is-wide');
     menu.setAttribute('popover', 'auto');
@@ -488,14 +492,25 @@ function inScrollBox(el) {
   return false;
 }
 
-// Nothing moves while pulling; once the pull is long enough and the finger lets go, the logo in the top bar
-// pulses with a gold glow while the data loads, then gives a little bounce.
+// While pulling, a round refresh indicator slides down under the top bar and its gold arc fills up; once the pull
+// is long enough and the finger lets go it spins (and the logo pulses with a gold glow) while the data loads,
+// then both settle: the indicator slides away and the logo gives a little bounce.
 function initPullToRefresh() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const logo = document.querySelector('.site-logo');
   const LIMIT = 150, READY = 110;
   let startY = null, startX = 0, pull = 0, busy = false;
-  const stop = () => { pull = 0; };
+  const spin = document.createElement('div');
+  spin.className = 'ptr-spin';
+  spin.setAttribute('aria-hidden', 'true');
+  spin.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" pathLength="100"/></svg>';
+  document.body.append(spin);
+  const show = (p) => {
+    spin.style.setProperty('--pull', p.toFixed(3));
+    spin.classList.toggle('on', p > 0);
+    spin.classList.toggle('ready', p * LIMIT >= READY);
+  };
+  const stop = () => { pull = 0; spin.classList.remove('busy'); show(0); };
   addEventListener('touchstart', (e) => {
     // Not while a pop-up is open, nor when the finger starts in a box that scrolls on its own (e.g. the season list).
     const blocked = busy || e.touches.length > 1 || document.querySelector(':popover-open, dialog[open], .season-pick.open')
@@ -512,6 +527,7 @@ function initPullToRefresh() {
     // Older iOS ignores overscroll-behavior: keep the page itself still while pulling.
     if (e.cancelable) e.preventDefault();
     pull = LIMIT * (1 - Math.exp(-dy / 200)); // eases out towards LIMIT, like the system gesture
+    show(pull / LIMIT);
   }, { passive: false });
   addEventListener('touchend', async () => {
     if (startY === null) return;
@@ -519,6 +535,8 @@ function initPullToRefresh() {
     if (pull < READY) { stop(); return; }
     busy = true;
     logo.classList.add('ptr-busy');
+    spin.classList.add('busy');
+    show(1);
     // Glow only briefly: done as soon as the data is in (a short minimum so it still reads as "refreshed").
     await Promise.all([refresh(), new Promise((r) => setTimeout(r, 250))]);
     // Like a fresh visit: the home page draws a new fact even when the data has not changed.

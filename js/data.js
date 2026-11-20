@@ -1,6 +1,6 @@
 // Loads league data from the public Google Sheet and derives every statistic from the raw results.
 import { teamKey, teamInfo, RESERVE } from './teams.js';
-import { countryCode, TRACK_NAMES } from './countries.js';
+import { countryCode, TRACK_NAMES, SHORT_TRACK_NAME } from './countries.js';
 
 const CACHE_KEY = 'ppr-data-v1';
 
@@ -130,6 +130,9 @@ export function buildModel(texts) {
     if (name && code && code !== 'COUNTRY') trackName[code] = name;
   }
   for (const [code, name] of Object.entries(trackName)) codeByName.set(name.toLowerCase(), code);
+  // Everything on the site shows the short, well-known name ("Imola"); the official one is kept for the track page.
+  const trackFullName = { ...trackName };
+  for (const code of Object.keys(trackName)) trackName[code] = SHORT_TRACK_NAME[code] || trackName[code];
 
   // Records
   const records = new Map();
@@ -322,7 +325,7 @@ export function buildModel(texts) {
   for (const race of raceList) {
     let t = trackMap.get(race.track);
     if (!t) {
-      t = { code: race.track, name: trackName[race.track] || race.track, races: [], drivers: new Map(), teams: new Map(), record: records.get(race.track) || null };
+      t = { code: race.track, name: trackName[race.track] || race.track, fullName: trackFullName[race.track] || race.track, races: [], drivers: new Map(), teams: new Map(), record: records.get(race.track) || null };
       trackMap.set(race.track, t);
     }
     t.races.push(race);
@@ -351,7 +354,7 @@ export function buildModel(texts) {
 
   return {
     results, raceList, races: raceMap, seasons, seasonNums, currentSeason,
-    drivers, driverMap, teams, teamMap, tracks, trackMap, trackName, records, winsFromGrid,
+    drivers, driverMap, teams, teamMap, tracks, trackMap, trackName, trackFullName, records, winsFromGrid,
     winnersCount: new Set(raceList.filter((r) => r.winner?.win).map((r) => r.winner.driver)).size,
   };
 }
