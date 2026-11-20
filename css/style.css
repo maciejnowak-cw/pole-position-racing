@@ -222,18 +222,18 @@ abbr[title] { text-decoration: none; cursor: help; }
 .lang[data-drag='en']::before { translate: calc(100% + 2px) 0; }
 .lang[data-drag] button { color: var(--muted); }
 .lang[data-drag='pl'] [data-lang='pl'], .lang[data-drag='en'] [data-lang='en'] { color: #111; }
-/* Header controls (language switch, search) in the phone dock's style, at every width: dark glass with a light rim,
+/* Header controls (language switch, search, menu) in the phone dock's style, at every width: dark glass with a light rim,
    and the chosen language in a soft gold pill with gold text instead of a solid gold button. */
-.lang, .site-header .search-button {
+.lang, .site-header :is(.search-button, .menu-button) {
   background: rgb(22 22 26 / 0.78); border: 1px solid rgb(255 255 255 / 0.1);
   box-shadow: 0 6px 18px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 .lang::before { background: rgb(242 193 78 / 0.14); }
 .lang button, .lang[data-drag] button { color: rgb(245 242 234 / 0.72); }
 .lang button[aria-pressed='true'], .lang[data-drag='pl'] [data-lang='pl'], .lang[data-drag='en'] [data-lang='en'] { color: var(--gold); }
-.site-header .search-button { color: rgb(245 242 234 / 0.72); }
-@media (hover: hover) { .lang:not([data-drag]) button:hover:not([aria-pressed='true']), .site-header .search-button:hover { color: var(--text); } }
-@media (hover: hover) { .site-header .search-button:hover { border-color: rgb(242 193 78 / 0.5); } }
+.site-header :is(.search-button, .menu-button) { color: rgb(245 242 234 / 0.72); }
+@media (hover: hover) { .lang:not([data-drag]) button:hover:not([aria-pressed='true']), .site-header :is(.search-button, .menu-button):hover { color: var(--text); } }
+@media (hover: hover) { .site-header :is(.search-button, .menu-button):hover { border-color: rgb(242 193 78 / 0.5); } }
 
 /* ---------- Layout ---------- */
 main {
