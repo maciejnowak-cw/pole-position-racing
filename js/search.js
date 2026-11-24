@@ -107,8 +107,16 @@ function draw() {
   list.innerHTML = results.map((r, i) => `<li id="sr-${i}" role="option" aria-selected="${i === active}">
       <a href="${r.url}" tabindex="-1"><span class="search-ico">${r.icon}</span><span class="search-name">${esc(r.name)}</span><span class="search-kind">${esc(t('search.' + r.kind))}${r.meta ? ` · ${esc(r.meta)}` : ''}</span></a>
     </li>`).join('');
-  input.setAttribute('aria-activedescendant', `sr-${active}`);
+  if (active < 0) input.removeAttribute('aria-activedescendant'); else input.setAttribute('aria-activedescendant', `sr-${active}`);
   list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+}
+
+// Moves the highlight without redrawing the list (-1: nothing highlighted).
+function highlight(i) {
+  if (i === active) return;
+  active = i;
+  list.querySelectorAll('[role="option"]').forEach((li, n) => li.setAttribute('aria-selected', String(n === i)));
+  if (i < 0) input.removeAttribute('aria-activedescendant'); else input.setAttribute('aria-activedescendant', `sr-${i}`);
 }
 
 function go(r) {
@@ -127,7 +135,7 @@ export function openSearch() {
   recentHead.querySelector('span').textContent = t('search.recent');
   recentHead.querySelector('button').textContent = t('search.clear');
   input.value = '';
-  active = 0;
+  active = -1; // recent picks: highlighted only under the mouse or by the arrow keys
   draw();
   dialog.showModal();
   input.focus();
@@ -147,20 +155,27 @@ export function initSearch(button, modelGetter) {
   input = dialog.querySelector('input');
   list = dialog.querySelector('ul');
   recentHead = dialog.querySelector('.search-recent');
-  recentHead.querySelector('button').addEventListener('click', () => { saveRecent([]); active = 0; draw(); input.focus(); });
+  recentHead.querySelector('button').addEventListener('click', () => { saveRecent([]); active = -1; draw(); input.focus(); });
 
-  input.addEventListener('input', () => { active = 0; draw(); });
+  input.addEventListener('input', () => { active = input.value.trim() ? 0 : -1; draw(); });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       if (!results.length) return;
-      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
+      const last = results.length - 1;
+      active = e.key === 'ArrowDown' ? (active >= last ? 0 : active + 1) : (active <= 0 ? last : active - 1);
       draw();
     } else if (e.key === 'Enter') {
       e.preventDefault();
       go(results[active]);
     }
   });
+  // The highlight follows the mouse; among recent picks it goes out when the mouse leaves the list.
+  list.addEventListener('pointermove', (e) => {
+    const li = e.pointerType === 'mouse' && e.target.closest('[role="option"]');
+    if (li) highlight(+li.id.slice(3));
+  });
+  list.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !input.value.trim()) highlight(-1); });
   list.addEventListener('click', (e) => {
     const li = e.target.closest('[role="option"]');
     if (!li) return;

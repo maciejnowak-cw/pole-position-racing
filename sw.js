@@ -3,7 +3,7 @@
 // Own images (logos): saved copy first, so they never wait for the network; every publish saves them anew.
 // Fonts and flags from CDNs: saved copy first (their addresses never change).
 // League data from Google Sheets is not touched here; the page keeps its own copy of it.
-const VERSION = '202611242315'; // set by scripts/release.py on every publish
+const VERSION = '202611242319'; // set by scripts/release.py on every publish
 const CACHE = `ppr-${VERSION}`;
 const SHELL = [
   './', 'index.html', 'config.json', 'manifest.webmanifest', 'css/style.css',
