@@ -1,8 +1,9 @@
 // Service worker: lets the site be installed as an app and open without internet.
 // Own files: network first (a fresh publish shows up at once), the saved copy when offline.
+// Own images (logos): saved copy first, so they never wait for the network; every publish saves them anew.
 // Fonts and flags from CDNs: saved copy first (their addresses never change).
 // League data from Google Sheets is not touched here; the page keeps its own copy of it.
-const VERSION = '202611201534'; // set by scripts/release.py on every publish
+const VERSION = '202611242315'; // set by scripts/release.py on every publish
 const CACHE = `ppr-${VERSION}`;
 const SHELL = [
   './', 'index.html', 'config.json', 'manifest.webmanifest', 'css/style.css',
@@ -19,7 +20,7 @@ const SHELL = [
 const CDN = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'no-cache' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -32,7 +33,8 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin === location.origin) e.respondWith(networkFirst(req));
+  if (url.origin === location.origin && req.destination === 'image') e.respondWith(cacheFirst(req, CACHE));
+  else if (url.origin === location.origin) e.respondWith(networkFirst(req));
   else if (CDN.includes(url.hostname)) e.respondWith(cacheFirst(req));
 });
 
@@ -51,8 +53,8 @@ async function networkFirst(req) {
   }
 }
 
-async function cacheFirst(req) {
-  const cache = await caches.open('ppr-cdn');
+async function cacheFirst(req, name = 'ppr-cdn') {
+  const cache = await caches.open(name);
   const hit = await cache.match(req);
   if (hit) return hit;
   const res = await fetch(req);

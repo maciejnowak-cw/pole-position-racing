@@ -319,6 +319,14 @@ function warmImages(m) {
   if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 1500 }); else setTimeout(load, 300);
 }
 
+// Logos on the new page that are not ready yet (the phone had dropped them from memory): the page waits for them
+// before it slides in, at most a moment, so they do not pop in afterwards.
+function logosReady() {
+  const late = [...main.querySelectorAll('img.tlogo')].filter((img) => !img.complete).slice(0, 40);
+  if (!late.length) return null;
+  return Promise.race([Promise.allSettled(late.map((img) => img.decode())), new Promise((r) => setTimeout(r, 300))]);
+}
+
 function render({ animate = false, soft = false, restore = null } = {}) {
   if (!model) return;
   warmImages(model);
@@ -343,7 +351,7 @@ function render({ animate = false, soft = false, restore = null } = {}) {
   const focus = () => { if (!soft) main.querySelector('h1')?.focus({ preventScroll: true }); };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (animate && !reduce && document.startViewTransition) {
-    const vt = document.startViewTransition(update);
+    const vt = document.startViewTransition(() => { update(); return logosReady(); });
     // A newer navigation skips the running transition; that is expected, not an error.
     vt.ready.catch(() => {});
     vt.finished.finally(focus);
@@ -499,7 +507,9 @@ function initPullToRefresh() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const logo = document.querySelector('.site-logo');
   const LIMIT = 150, READY = 110;
-  let startY = null, startX = 0, pull = 0, busy = false;
+  // The data may hang on a bad connection: the circle gives up after this long (the request itself goes on).
+  const MAX_WAIT = 8000;
+  let startY = null, startX = 0, pull = 0, busy = false, target = null;
   const spin = document.createElement('div');
   spin.className = 'ptr-spin';
   spin.setAttribute('aria-hidden', 'true');
@@ -511,12 +521,26 @@ function initPullToRefresh() {
     spin.classList.toggle('ready', p * LIMIT >= READY);
   };
   const stop = () => { pull = 0; spin.classList.remove('busy'); show(0); };
+  // The gesture is over without a refresh: a second finger, a call or notification, the app going to the background.
+  const cancel = () => { startY = null; if (!busy) stop(); };
+  // Listened for on the touched element itself: when a background refresh redraws the page under the finger, the
+  // element leaves the page and its touch events no longer reach the window.
+  const follow = (el) => {
+    target?.removeEventListener('touchend', release);
+    target?.removeEventListener('touchcancel', cancel);
+    target = el;
+    target?.addEventListener('touchend', release);
+    target?.addEventListener('touchcancel', cancel);
+  };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancel(); });
   addEventListener('touchstart', (e) => {
+    cancel();
     // Not while a pop-up is open, nor when the finger starts in a box that scrolls on its own (e.g. the season list).
     const blocked = busy || e.touches.length > 1 || document.querySelector(':popover-open, dialog[open], .season-pick.open')
       || inScrollBox(e.target);
     startY = !blocked && scrollY <= 0 ? e.touches[0].clientY : null;
     startX = e.touches[0].clientX;
+    if (startY !== null) follow(e.target);
   }, { passive: true });
   addEventListener('touchmove', (e) => {
     if (startY === null) return;
@@ -529,7 +553,7 @@ function initPullToRefresh() {
     pull = LIMIT * (1 - Math.exp(-dy / 200)); // eases out towards LIMIT, like the system gesture
     show(pull / LIMIT);
   }, { passive: false });
-  addEventListener('touchend', async () => {
+  async function release() {
     if (startY === null) return;
     startY = null;
     if (pull < READY) { stop(); return; }
@@ -538,14 +562,18 @@ function initPullToRefresh() {
     spin.classList.add('busy');
     show(1);
     // Glow only briefly: done as soon as the data is in (a short minimum so it still reads as "refreshed").
-    await Promise.all([refresh(), new Promise((r) => setTimeout(r, 250))]);
-    // Like a fresh visit: the home page draws a new fact even when the data has not changed.
-    if (model && !path().split('/')[0]) { V.newFact(); render({ soft: true }); }
-    logo.classList.remove('ptr-busy');
-    stop();
-    logo.classList.add('hop'); // a little bounce: done
-    busy = false;
-  });
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    try {
+      await Promise.all([Promise.race([refresh(), wait(MAX_WAIT)]), wait(250)]);
+      // Like a fresh visit: the home page draws a new fact even when the data has not changed.
+      if (model && !path().split('/')[0]) { V.newFact(); render({ soft: true }); }
+    } finally { // whatever happens, the circle goes away
+      busy = false;
+      logo.classList.remove('ptr-busy');
+      stop();
+      logo.classList.add('hop'); // a little bounce: done
+    }
+  }
 }
 
 async function loadConfig() {
@@ -591,6 +619,10 @@ async function boot() {
     main.querySelector('h1')?.focus({ preventScroll: true });
   });
   logo.addEventListener('animationend', () => logo.classList.remove('hop'));
+  // Track and race pages: once the map has drawn itself on opening, hovering it draws it again (see style.css).
+  document.addEventListener('animationend', (e) => {
+    if (e.target.matches?.('.track-hero .trackmap-draw .trk-line')) e.target.closest('svg').classList.replace('trackmap-draw', 'trackmap-hover');
+  });
   showSkeleton();
   // Offline copy and "add to home screen" (see sw.js); a failure here only means no offline mode.
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

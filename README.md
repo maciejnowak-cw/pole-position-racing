@@ -23,7 +23,7 @@ Wystarczy wpisywać wyniki do arkusza tak jak dotąd. Strona sprawdza arkusz prz
 - **Konstruktorzy:** liczone bez zespołu „Reserve”. Historyczne nazwy są połączone z następcami: Renault → Alpine, Racing Point → Aston Martin, AlphaTauri → VCARB, Alfa Romeo i Kick Sauber → Audi.
 - **Mistrz sezonu:** ogłaszany dopiero, gdy w arkuszu pojawi się pierwszy wyścig kolejnego sezonu. Do tego czasu strona pokazuje „Lidera”.
 - **Kalendarz (zakładka sezonu):** pokazuje tylko rozegrane rundy, wzięte z wyników w arkuszu.
-- **Wyszukiwarka:** lupa w nagłówku, Ctrl+K (Cmd+K na Macu) albo „/”. Szuka kierowców, zespołów, torów i sezonów („S12”, „sezon 12”), bez względu na polskie znaki. Pojedynczy wyścig znajduje po torze i sezonie lub rundzie („Monza S14”, „S7 R3”).
+- **Wyszukiwarka:** lupa w nagłówku, Ctrl+K (Cmd+K na Macu) albo „/”. Szuka kierowców, zespołów, torów i sezonów („S12”, „sezon 12”), bez względu na polskie znaki. Pojedynczy wyścig znajduje po torze i sezonie lub rundzie („Monza S14”, „S7 R3”). Puste pole pokazuje ostatnio wybrane wyniki (zapisane tylko w tej przeglądarce).
 - **Nie znaleziono:** gdy adres prowadzi donikąd (np. literówka w nazwisku), strona podpowiada najbardziej podobnych kierowców, zespoły i tory oraz daje przyciski „Start” i „Szukaj”.
 - **Aplikacja na telefonie:** stronę można dodać do ekranu głównego (Chrome: „Zainstaluj aplikację”, Safari: Udostępnij → „Do ekranu początkowego”). Otwiera się wtedy na pełnym ekranie, a bez internetu pokazuje ostatnio pobrane dane (`sw.js`, `manifest.webmanifest`).
 - **Awanse:** „Kierowca dnia” (największy awans) na stronie wyścigu i tabela „Największe awanse w wyścigu” w statystykach liczą tylko kierowców, którzy ukończyli wyścig i mają wpisane pole startowe.
@@ -87,7 +87,9 @@ Przed wysłaniem zmian uruchom:
 python3 scripts/release.py
 ```
 
-Skrypt nadaje plikom CSS i JS nowy numer wersji (`?v=…` w `index.html`, także w mapie importów modułów) i ten sam numer w `sw.js`. Dzięki temu przeglądarki odwiedzających pobierają nowe pliki od razu, bez ręcznego odświeżania z Shiftem.
+Skrypt najpierw sprawdza stronę (`scripts/check.mjs`, wymaga programu [Node](https://nodejs.org)): pobiera aktualny arkusz, buduje każdą podstronę po polsku i angielsku i szuka błędów, martwych linków, brakujących plików i tekstów. Gdy coś nie działa, wypisuje problemy i przerywa. Test można też uruchomić osobno: `node scripts/check.mjs`. Nie sprawdza wyglądu ani klikania.
+
+Gdy wszystko jest w porządku, nadaje plikom CSS i JS nowy numer wersji (`?v=…` w `index.html`, także w mapie importów modułów) i ten sam numer w `sw.js`. Dzięki temu przeglądarki odwiedzających pobierają nowe pliki od razu, bez ręcznego odświeżania z Shiftem.
 
 ## Licencje i źródła
 

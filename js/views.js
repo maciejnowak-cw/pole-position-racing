@@ -5,7 +5,7 @@ import { TRACK_COUNTRY } from './countries.js';
 import { TRACK_GEO } from './track-geo.js';
 import { teammateBattles } from './data.js';
 import {
-  esc, href, flag, driverLink, teamBadge, teamLogo, trackLink, trackFlag, trackMap, posBadge, ordinalPos, seasonTag,
+  esc, href, flag, driverColor, driverLink, teamBadge, teamLogo, trackLink, trackFlag, trackMap, posBadge, ordinalPos, seasonTag,
   statTile, section, moreLink, pageHead, hiddenHead, backLink, SOCIAL, socialIcon, table, barChart, sprintBadge, sprintFlag, fold,
   PHONE_TRACK_NAME,
 } from './ui.js';
@@ -547,12 +547,14 @@ export function season(model, n, { standings = false, tab = '' } = {}) {
 /* ---------- GOAT ---------- */
 export function goat(model) {
   const medal = (d) => (d.goat === 1 ? '<span class="goat" title="G.O.A.T." aria-label="G.O.A.T.">🐐</span>' : posBadge(d.goat));
+  // A podium figure, e.g. "23 wygrane", with the number in its own tag.
+  const stat = (n, noun) => `<span>${fmt.count(n, noun).replace(/^\S+/, '<b>$&</b>')}</span>`;
   const html = `${hiddenHead(t('goat.title'))}
   <ol class="goat-podium">${model.drivers.slice(0, 3).map((d) => `<li class="gp-${d.goat}">
     <span class="gp-rank">${d.goat === 1 ? '🐐' : d.goat}</span>
     <span class="gp-name">${driverLink(model, d.name)}</span>
     <span class="gp-pts">${pts(d.points)} <span class="sub">${t('common.pts')}</span></span>
-    <span class="sub">${fmt.count(d.wins, 'win')} · ${fmt.count(d.titles.length, 'title')}</span>
+    <span class="sub gp-sub">${stat(d.wins, 'win')} ${stat(d.podiums, 'podium')} ${stat(d.poles, 'pole')}</span>
   </li>`).join('')}</ol>
   ${table({
     caption: t('goat.title'), filter: true, colsToggle: false,
@@ -898,7 +900,9 @@ export function driver(model, name) {
       numCol(t('common.points'), (r) => r.pts, { cls: 'c-pts' }),
     ],
   });
-  const html = `${backLink('#/goat')}<header class="page-head driver-head">
+  // The line under the heading takes the colour of the driver's current team (gold for reserve drivers).
+  const teamNow = driverColor(model, d);
+  const html = `${backLink('#/goat')}<header class="page-head driver-head ${teamNow ? 'has-team' : ''}" ${teamNow ? `style="--team:${teamNow}"` : ''}>
     <div class="driver-id">
       <span class="flag-xl">${flag(d.flag, fmt.country(d.flag) || d.country)}</span>
       <div>
@@ -926,19 +930,19 @@ export function driver(model, name) {
 }
 
 /* ---------- Teams ---------- */
-// The team's legend: the driver who scored the most points for it (plain text, the whole card is a link).
+// The team's legend: the driver who scored the most points for it, linked to their profile.
 function teamLegend(model, tm) {
   const best = [...tm.drivers.values()].sort((a, b) => b.points - a.points)[0];
   if (!best?.points) return '';
-  const d = model.driverMap.get(best.name);
-  return `<p class="team-card-legend"><span class="tcl-label">${esc(t('common.legend'))}</span><span class="who">${flag(d?.flag, d ? fmt.country(d.flag) || d.country : '')}<span class="ellipsis">${esc(best.name)}</span></span><span class="sub">${fmt.int(best.points)} ${t('common.pts')}</span></p>`;
+  return `<p class="team-card-legend"><span class="tcl-label">${esc(t('common.legend'))}</span>${driverLink(model, best.name)}<span class="sub">${fmt.int(best.points)} ${t('common.pts')}</span></p>`;
 }
 
 export function teams(model) {
-  const cards = model.teams.map((tm) => `<a class="team-card" href="${href.team(tm.key)}" style="--team:${tm.info.color}">
+  // The team name's link stretches over the whole card (CSS); the legend's link lies above it.
+  const cards = model.teams.map((tm) => `<article class="team-card" style="--team:${tm.info.color}">
       <span class="team-card-logo">${teamLogo(tm.key, 'tlogo-lg')}</span>
       <span class="team-card-pos">#${tm.pos}</span>
-      <span class="team-card-name">${esc(tm.info.name)}</span>
+      <a class="team-card-name" href="${href.team(tm.key)}">${esc(tm.info.name)}</a>
       <span class="sub">${esc(tm.info.full)}</span>
       <dl class="team-card-stats">
         <div><dt>${t('common.points')}</dt><dd>${fmt.int(tm.points)}</dd></div>
@@ -946,7 +950,7 @@ export function teams(model) {
         <div><dt>${t('common.titles')}</dt><dd>${fmt.int(tm.titles.length)}</dd></div>
       </dl>
       ${teamLegend(model, tm)}
-    </a>`).join('');
+    </article>`).join('');
   return { title: t('teams.title'), html: `${hiddenHead(t('teams.title'))}<div class="team-grid">${cards}</div>` };
 }
 
@@ -970,11 +974,11 @@ function milestonesHtml(model, items) {
     if (last && last.e.race === m.e.race) { last.keys.push(m.key); if (!last.who) last.who = m.who; } else groups.push({ e: m.e, keys: [m.key], who: m.who });
   }
   return `<ol class="milestones">${groups.map(({ keys, e, who }) => {
-    const label = keys.map((key) => (Array.isArray(key) ? t(key[0], key[1]) : t(key))).join(' · ');
+    const label = keys.map((key) => `<span>${esc(Array.isArray(key) ? t(key[0], key[1]) : t(key))}</span>`).join(' '); // one per line
     const race = model.races.get(e.race);
     const tail = who === undefined ? (e.dnf ? 'DNF' : e.pos ? 'P' + e.pos : '—') : who;
     return `<li class="${keys.some((k) => MS_GOLD.includes(k)) ? 'ms-gold' : ''}">
-      <p class="kicker">${esc(label)}</p>
+      <p class="kicker">${label}</p>
       <a class="who" href="${href.race(e.race)}">${trackFlag(e.track)}${trackNameSpans(model, e.track)}</a>
       <p class="sub">S${e.season} · R${race.round}${tail ? ` · ${esc(tail)}` : ''}</p>
     </li>`;
@@ -1134,11 +1138,14 @@ export function track(model, code) {
   const seasonRaces = [...bySeason.values()].sort((a, b) => a.season - b.season);
   const winners = new Set(tr.races.map((r) => r.winner?.driver).filter(Boolean)).size;
   const firstSeason = Math.min(...tr.races.map((r) => r.season));
-  const badges = [
-    geo?.len ? chip(`${esc(t('common.length'))}: ${fmt.dec(geo.len / 1000, 3)} km`) : '',
-    chip(`${esc(t('track.firstRace'))}: S${firstSeason}`),
-    winners ? chip(`${esc(t('track.winners'))}: ${winners}`) : '',
-  ].filter(Boolean).join('');
+  // Four facts in one row (under the map on phones, under the name on wide screens).
+  const fact = (label, value) => `<div><dt>${esc(label)}</dt><dd>${value}</dd></div>`;
+  const facts = `<dl class="track-facts">
+    ${fact(t('track.firstRace'), `S${firstSeason}`)}
+    ${fact(t('common.races'), fmt.int(tr.races.length))}
+    ${winners ? fact(t('track.winners'), winners) : ''}
+    ${geo?.len ? fact(t('common.length'), `${fmt.dec(geo.len / 1000, 3)} <small>km</small>`) : ''}
+  </dl>`;
   const tiles = `<dl class="tiles tiles-compact tiles-stack tiles-rail">
     ${recordTile(model, t('common.lapRecord'), tr.record?.lap)}
     ${recordTile(model, t('common.qualiRecord'), tr.record?.quali)}
@@ -1149,12 +1156,12 @@ export function track(model, code) {
   </dl>`;
   // The heading is the short name everyone uses ("Imola"); the full official name goes in the gold line above it.
   const short = tr.name;
-  const html = `${backLink('#/tracks')}<header class="page-head track-head">
+  const html = `${backLink('#/tracks')}<header class="page-head track-head track-page">
     <div>
       <p class="kicker">${esc(fmt.country(TRACK_COUNTRY[code]))}${tr.fullName !== short ? ` · ${esc(tr.fullName)}` : geo?.loc ? ` · ${esc(geo.loc)}` : ''}</p>
       <h1 tabindex="-1" class="track-title">${trackFlag(code)}<span>${esc(short)}</span></h1>
-      <p class="lead track-seasons">${t('common.racesCount', { n: tr.races.length })}${seasonRaces.map((r) => chip(`S${r.season}`, { link: href.race(r.id), title: `${t('common.season')} ${r.season} · R${r.round}` })).join('')}</p>
-      <p class="badges">${badges}</p>
+      ${facts}
+      <div class="track-seasons"><span class="ts-label">${esc(t('common.seasons'))}</span><span class="ts-list">${seasonRaces.map((r) => chip(`S${r.season}`, { link: href.race(r.id), title: `${t('common.season')} ${r.season} · R${r.round}` })).join('')}</span></div>
     </div>
     <div class="track-hero">${trackMap(code, { draw: true, label: tr.name })}</div>
   </header>
@@ -1200,8 +1207,8 @@ export function race(model, id) {
   const html = `${backLink(r.season === model.currentSeason ? '#/standings' : href.season(r.season))}<header class="page-head track-head">
     <div>
       <p class="kicker">${raceSummary(model, r)} <span class="sub">${t('common.raceNo', { n: r.id })}</span>${sprintBadge(r)}</p>
-      <h1 tabindex="-1">${esc(name)}</h1>
-      <p class="lead"><a class="who" href="${href.track(r.track)}">${trackFlag(r.track)}<span>${esc(fmt.country(TRACK_COUNTRY[r.track]))}</span></a></p>
+      <h1 tabindex="-1" class="track-title">${trackFlag(r.track)}<span>${esc(name)}</span></h1>
+      <p class="lead"><a class="who" href="${href.track(r.track)}"><span>${esc(fmt.country(TRACK_COUNTRY[r.track]))}</span></a></p>
     </div>
     <div class="track-hero">${trackMap(r.track, { draw: true, label: name })}</div>
   </header>

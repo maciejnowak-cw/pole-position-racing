@@ -15,7 +15,22 @@ function countryNames(iso) {
   try { return regionNames.map((r) => r.of(iso.toUpperCase())).join(' '); } catch { return ''; }
 }
 
-let dialog, input, list, getModel, index = [], active = 0, results = [];
+let dialog, input, list, recentHead, getModel, index = [], active = 0, results = [];
+
+// The last few picked results (their addresses), kept in this browser only and listed while the field is empty.
+const RECENT_KEY = 'ppr-recent-search';
+const RECENT_MAX = 6;
+function recentUrls() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(RECENT_KEY));
+    return Array.isArray(saved) ? saved.filter((u) => typeof u === 'string') : [];
+  } catch { return []; }
+}
+function saveRecent(urls) {
+  try { if (urls.length) localStorage.setItem(RECENT_KEY, JSON.stringify(urls)); else localStorage.removeItem(RECENT_KEY); } catch { /* storage unavailable */ }
+}
+// Looked up in the current index, so names follow the chosen language and entries gone from the data drop out.
+const recentItems = () => recentUrls().map((u) => index.find((it) => it.url === u)).filter(Boolean);
 
 function buildIndex(model) {
   const items = [];
@@ -83,9 +98,11 @@ function find(q) {
 
 function draw() {
   const q = input.value;
-  results = find(q);
+  const blank = !q.trim();
+  results = blank ? recentItems() : find(q);
+  recentHead.hidden = !blank || !results.length;
   active = Math.min(active, Math.max(results.length - 1, 0));
-  if (!q.trim()) { list.innerHTML = ''; input.removeAttribute('aria-activedescendant'); return; }
+  if (blank && !results.length) { list.innerHTML = ''; input.removeAttribute('aria-activedescendant'); return; }
   if (!results.length) { list.innerHTML = `<li class="search-empty" role="presentation">${esc(t('search.empty'))}</li>`; input.removeAttribute('aria-activedescendant'); return; }
   list.innerHTML = results.map((r, i) => `<li id="sr-${i}" role="option" aria-selected="${i === active}">
       <a href="${r.url}" tabindex="-1"><span class="search-ico">${r.icon}</span><span class="search-name">${esc(r.name)}</span><span class="search-kind">${esc(t('search.' + r.kind))}${r.meta ? ` · ${esc(r.meta)}` : ''}</span></a>
@@ -96,6 +113,7 @@ function draw() {
 
 function go(r) {
   if (!r) return;
+  saveRecent([r.url, ...recentUrls().filter((u) => u !== r.url)].slice(0, RECENT_MAX));
   dialog.close();
   location.hash = r.url;
 }
@@ -106,6 +124,8 @@ export function openSearch() {
   index = buildIndex(model);
   input.placeholder = t('search.placeholder');
   input.setAttribute('aria-label', t('search.label'));
+  recentHead.querySelector('span').textContent = t('search.recent');
+  recentHead.querySelector('button').textContent = t('search.clear');
   input.value = '';
   active = 0;
   draw();
@@ -121,10 +141,13 @@ export function initSearch(button, modelGetter) {
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
       <input type="search" role="combobox" aria-expanded="true" aria-controls="search-list" aria-autocomplete="list" autocomplete="off" spellcheck="false">
     </div>
+    <div class="search-recent" hidden><span></span><button type="button"></button></div>
     <ul id="search-list" class="search-list" role="listbox"></ul>`;
   document.body.append(dialog);
   input = dialog.querySelector('input');
   list = dialog.querySelector('ul');
+  recentHead = dialog.querySelector('.search-recent');
+  recentHead.querySelector('button').addEventListener('click', () => { saveRecent([]); active = 0; draw(); input.focus(); });
 
   input.addEventListener('input', () => { active = 0; draw(); });
   input.addEventListener('keydown', (e) => {
@@ -146,6 +169,9 @@ export function initSearch(button, modelGetter) {
   });
   // Click on the backdrop closes the dialog.
   dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+
+  // Moving to another page (e.g. the back swipe) closes it.
+  for (const ev of ['hashchange', 'popstate']) addEventListener(ev, () => { if (dialog.open) dialog.close(); });
 
   button.addEventListener('click', openSearch);
   addEventListener('keydown', (e) => {

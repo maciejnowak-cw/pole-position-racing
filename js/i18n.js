@@ -5,7 +5,7 @@ const DICT = {
     'nav.home': 'Start', 'nav.standings': 'Klasyfikacja', 'nav.goat': 'Kierowcy',
     'nav.stats': 'Statystyki', 'nav.teams': 'Zespoły',
     'nav.tracks': 'Tory', 'nav.hof': 'Hall of Fame', 'nav.rules': 'Regulamin',
-    'nav.discord': 'Discord', 'nav.menu': 'Menu', 'nav.more': 'Więcej', 'search.open': 'Szukaj', 'search.label': 'Szukaj kierowcy, zespołu, toru, sezonu lub wyścigu', 'search.placeholder': 'Kierowca, zespół, tor lub sezon…', 'search.empty': 'Nic nie znaleziono. Sprawdź pisownię albo wpisz krótszy fragment nazwy.', 'search.driver': 'Kierowca', 'search.team': 'Zespół', 'search.track': 'Tor', 'search.season': 'Sezon', 'search.race': 'Wyścig', 'search.seasonName': 'Sezon {n}', 'nav.primary': 'Główna nawigacja', 'nav.lang': 'Język',
+    'nav.discord': 'Discord', 'nav.menu': 'Menu', 'nav.more': 'Więcej', 'search.open': 'Szukaj', 'search.label': 'Szukaj kierowcy, zespołu, toru, sezonu lub wyścigu', 'search.placeholder': 'Kierowca, zespół, tor lub sezon…', 'search.empty': 'Nic nie znaleziono. Sprawdź pisownię albo wpisz krótszy fragment nazwy.', 'search.recent': 'Ostatnio szukane', 'search.clear': 'Wyczyść', 'search.driver': 'Kierowca', 'search.team': 'Zespół', 'search.track': 'Tor', 'search.season': 'Sezon', 'search.race': 'Wyścig', 'search.seasonName': 'Sezon {n}', 'nav.primary': 'Główna nawigacja', 'nav.lang': 'Język',
     'nav.skip': 'Przejdź do treści',
     'common.season': 'Sezon', 'common.prev': 'Poprzedni', 'common.next': 'Następny', 'common.seasons': 'Sezony', 'common.round': 'Runda', 'common.race': 'Wyścig', 'common.races': 'Wyścigi',
     'common.pos': 'Poz.', 'common.driver': 'Kierowca', 'common.drivers': 'Kierowcy', 'common.team': 'Zespół', 'common.teams': 'Zespoły',
@@ -59,7 +59,7 @@ const DICT = {
     'teams.title': 'Zespoły', 'teams.lead': 'Historyczne nazwy zespołów są połączone z ich następcami.',
     'team.notFound': 'Nie znaleziono zespołu.', 'team.drivers': 'Kierowcy zespołu', 'team.tracks': 'Punkty na torach',
     'tracks.title': 'Tory', 'tracks.lead': '{n} torów w historii ligi.',
-    'track.notFound': 'Nie znaleziono toru.', 'track.firstRace': 'Debiut', 'track.winners': 'Różnych zwycięzców', 'track.bySeason': 'Wyniki w sezonach', 'track.driverTable': 'Kierowcy na tym torze',
+    'track.notFound': 'Nie znaleziono toru.', 'track.firstRace': 'Debiut', 'track.winners': 'Zwycięzcy', 'track.bySeason': 'Wyniki w sezonach', 'track.driverTable': 'Kierowcy na tym torze',
     'track.teamTable': 'Zespoły na tym torze', 'track.noRecord': 'Brak danych',
     'race.title': '{track}', 'race.notFound': 'Nie znaleziono wyścigu.', 'race.classification': 'Klasyfikacja', 'race.biggestGain': 'Kierowca dnia',
     'hof.title': 'Hall of Fame',
@@ -73,7 +73,7 @@ const DICT = {
     'nav.home': 'Home', 'nav.standings': 'Standings', 'nav.goat': 'Drivers',
     'nav.stats': 'Stats', 'nav.teams': 'Teams',
     'nav.tracks': 'Tracks', 'nav.hof': 'Hall of Fame', 'nav.rules': 'Rules',
-    'nav.discord': 'Discord', 'nav.menu': 'Menu', 'nav.more': 'More', 'search.open': 'Search', 'search.label': 'Search for a driver, team, track, season or race', 'search.placeholder': 'Driver, team, track or season…', 'search.empty': 'No matches. Check the spelling or type a shorter part of the name.', 'search.driver': 'Driver', 'search.team': 'Team', 'search.track': 'Track', 'search.season': 'Season', 'search.race': 'Race', 'search.seasonName': 'Season {n}', 'nav.primary': 'Main navigation', 'nav.lang': 'Language',
+    'nav.discord': 'Discord', 'nav.menu': 'Menu', 'nav.more': 'More', 'search.open': 'Search', 'search.label': 'Search for a driver, team, track, season or race', 'search.placeholder': 'Driver, team, track or season…', 'search.empty': 'No matches. Check the spelling or type a shorter part of the name.', 'search.recent': 'Recent searches', 'search.clear': 'Clear', 'search.driver': 'Driver', 'search.team': 'Team', 'search.track': 'Track', 'search.season': 'Season', 'search.race': 'Race', 'search.seasonName': 'Season {n}', 'nav.primary': 'Main navigation', 'nav.lang': 'Language',
     'nav.skip': 'Skip to content',
     'common.season': 'Season', 'common.prev': 'Previous', 'common.next': 'Next', 'common.seasons': 'Seasons', 'common.round': 'Round', 'common.race': 'Race', 'common.races': 'Races',
     'common.pos': 'Pos.', 'common.driver': 'Driver', 'common.drivers': 'Drivers', 'common.team': 'Team', 'common.teams': 'Teams',
@@ -127,7 +127,7 @@ const DICT = {
     'teams.title': 'Teams', 'teams.lead': 'Historical team names are merged with their successors.',
     'team.notFound': 'Team not found.', 'team.drivers': 'Team drivers', 'team.tracks': 'Points by track',
     'tracks.title': 'Tracks', 'tracks.lead': '{n} tracks in league history.',
-    'track.notFound': 'Track not found.', 'track.firstRace': 'Debut', 'track.winners': 'Different winners', 'track.bySeason': 'Results by season', 'track.driverTable': 'Drivers at this track',
+    'track.notFound': 'Track not found.', 'track.firstRace': 'Debut', 'track.winners': 'Winners', 'track.bySeason': 'Results by season', 'track.driverTable': 'Drivers at this track',
     'track.teamTable': 'Teams at this track', 'track.noRecord': 'No data',
     'race.title': '{track}', 'race.notFound': 'Race not found.', 'race.classification': 'Classification', 'race.biggestGain': 'Driver of the day',
     'hof.title': 'Hall of Fame',
@@ -162,10 +162,10 @@ export function t(key, vars) {
   return s;
 }
 
-// Counted nouns with the right plural form ("1 tytuł", "3 tytuły", "0 tytułów").
+// Counted nouns with the right plural form ("1 wygrana", "3 wygrane", "0 wygranych").
 const NOUNS = {
-  pl: { win: { one: 'wygrana', few: 'wygrane', many: 'wygranych', other: 'wygranej' }, title: { one: 'tytuł', few: 'tytuły', many: 'tytułów', other: 'tytułu' } },
-  en: { win: { one: 'win', other: 'wins' }, title: { one: 'title', other: 'titles' } },
+  pl: { win: { one: 'wygrana', few: 'wygrane', many: 'wygranych', other: 'wygranej' }, podium: { one: 'podium', few: 'podia', many: 'podiów', other: 'podium' }, pole: { other: 'pole position' } },
+  en: { win: { one: 'win', other: 'wins' }, podium: { one: 'podium', other: 'podiums' }, pole: { one: 'pole', other: 'poles' } },
 };
 export const fmt = {
   int: (n) => (n == null ? '—' : new Intl.NumberFormat(lang).format(n)),

@@ -36,7 +36,12 @@ export function teamLogo(key, cls = '', name = '') {
   const logo = logoFor(key, name);
   if (!logo) return `<span class="tlogo tlogo-empty ${cls}" aria-hidden="true"></span>`;
   const extra = `${logo.src.startsWith('hist/') ? ' tlogo-hist' : ''}${logo.invert ? ' tlogo-invert' : ''}${logo.round ? ' tlogo-round' : ''}`;
-  return `<img class="tlogo${extra} ${cls}" src="assets/teams/${logo.src}" alt="" width="28" height="28">`;
+  return `<img class="tlogo${extra} ${cls}" src="assets/teams/${logo.src}" alt="" width="28" height="28" decoding="sync">`;
+}
+
+/** Colour of the driver's current team; '' for reserve drivers and those not in the current season. */
+export function driverColor(model, d) {
+  return d.lastSeason === Math.max(...model.seasonNums) && d.lastTeamKey !== RESERVE ? colorFor(d.lastTeamKey, d.lastTeam) : '';
 }
 
 /** Team label: current logo for the lineage + the name used at the time. */

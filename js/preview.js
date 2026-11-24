@@ -1,6 +1,6 @@
 // Preview cards: hovering a driver or team link (mouse only) shows who it is and the key all-time totals.
 import { t, fmt } from './i18n.js';
-import { esc, flag, teamBadge, teamLogo } from './ui.js';
+import { esc, flag, driverColor, teamBadge, teamLogo } from './ui.js';
 import { RESERVE } from './teams.js';
 
 const SHOW_DELAY = 280;
@@ -64,8 +64,8 @@ function show(link) {
   const item = kind === 'driver' ? model?.driverMap.get(key) : model?.teamMap.get(key);
   if (!item) return;
   card.innerHTML = kind === 'driver' ? driverContent(item, model) : teamContent(item);
-  // Team cards take the team colour on the top edge; driver cards stay gold.
-  card.style.setProperty('--pv-accent', kind === 'team' ? item.info.color : '');
+  // The team colour on the top edge (a driver's current team; gold for reserve drivers).
+  card.style.setProperty('--pv-accent', kind === 'team' ? item.info.color : driverColor(model, item));
   card.classList.add('on');
   place(link);
   current = link;
@@ -93,7 +93,7 @@ export function initDriverPreview(modelGetter) {
     // No preview for the driver or team whose page is already open.
     if (location.hash === link.getAttribute('href')) return;
     // Team cards on the Teams page already show the same numbers.
-    if (link.matches('.team-card')) return;
+    if (link.matches('.team-card-name')) return;
     clearTimeout(timer);
     timer = setTimeout(() => show(link), current ? 0 : SHOW_DELAY);
   });
