@@ -1081,6 +1081,12 @@ a.team-card-name:focus-visible { outline: none; }
   .track-page .track-facts { margin-block: 0.9rem 1.25rem; }
   .track-page .ts-list { grid-template-columns: repeat(auto-fill, minmax(3.1rem, 1fr)); }
 }
+/* Phones: the race page's heading is centred above its map too. */
+@media (width < 760px) {
+  .track-head > div { width: 100%; }
+  .track-head:not(.track-page) :is(.kicker, h1, .lead) { justify-content: center; text-align: center; }
+  .track-head:not(.track-page) .track-hero .trackmap { max-height: min(230px, 36vh); }
+}
 /* Phones: name, map, facts and seasons one under another, the name centred above the map. */
 @media (width < 760px) {
   .track-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
